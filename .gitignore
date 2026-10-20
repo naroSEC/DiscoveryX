@@ -2,6 +2,7 @@
 /discoveryx
 runs/
 wordlists/*.txt
+!wordlists/common.txt
 *.test
 *.test.exe
 coverage.out

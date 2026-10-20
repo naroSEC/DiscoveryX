@@ -13,7 +13,7 @@ discoveryx --help
 
 실행 파일은 `go env GOBIN`의 경로에 설치됩니다. 해당 값이 비어 있으면 `$(go env GOPATH)\bin`을 사용하므로 그 폴더를 PATH에 추가해 주세요. 설치된 명령은 아래 예제의 `.\discoveryx.exe` 대신 `discoveryx`로 실행할 수 있습니다.
 
-기본 설정과 기술별 확장자 룰은 실행 파일에도 포함됩니다. 현재 폴더의 `config.yaml` 또는 `configs/config.yaml`이 있으면 해당 파일을 읽으며, 없으면 내장 기본 설정을 사용합니다. 기본 기술 룰 파일이 없으면 내장 룰로 동작하고, 별도의 `--tech-rules <경로>`를 지정하면 그 파일을 사용합니다. `--tech-rules builtin`으로 내장 룰을 직접 선택할 수도 있습니다. 사전은 포함하지 않으므로 `--wordlist`로 직접 지정하세요.
+기본 설정과 기술별 확장자 룰은 실행 파일에도 포함됩니다. 현재 폴더의 `config.yaml` 또는 `configs/config.yaml`이 있으면 해당 파일을 읽으며, 없으면 내장 기본 설정을 사용합니다. 기본 기술 룰 파일이 없으면 내장 룰로 동작하고, 별도의 `--tech-rules <경로>`를 지정하면 그 파일을 사용합니다. `--tech-rules builtin`으로 내장 룰을 직접 선택할 수도 있습니다. 사전은 실행 파일에 내장되지 않습니다. 저장소에 포함된 `wordlists/common.txt`의 실제 경로를 `--wordlist`로 지정하거나 작업 폴더에 해당 파일을 배치하세요.
 
 소스에서 직접 빌드하려면 프로젝트 루트에서 다음을 실행하세요.
 
@@ -28,7 +28,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 필요한 도구가 없으면 해당 단계에서 공식 GitHub Releases 자산을 설치합니다. 기본 위치는 `%LOCALAPPDATA%\discoveryx\tools`이며 템플릿은 인접한 `templates` 디렉터리에서 관리합니다. Linux에서는 `os.UserCacheDir()` 아래를 사용합니다. `--tools-dir`, `--templates-dir`로 바꿀 수 있습니다. PATH의 동명 실행 파일을 임의로 선택하지 않으며, 정상적인 Manifest와 바이너리 해시가 있으면 재다운로드하지 않습니다.
 
-디렉터리 탐색을 사용하려면 **사용자가 직접** `wordlists/common.txt`를 배치하세요. DiscoveryX는 사전을 생성하거나 다운로드하지 않습니다. Nuclei 템플릿은 없거나 YAML 파일이 하나도 없으면 최초 점검 전에 자동 설치합니다. 기존 템플릿이 있으면 다운로드나 업데이트를 하지 않습니다. 미리 설치하거나 갱신하려면 다음 명령을 사용하세요.
+프로젝트 루트에서는 저장소에 포함된 기본 사전 `wordlists/common.txt`를 사용합니다. 다른 사전을 사용하거나 다른 작업 폴더에서 실행하려면 `--wordlist <경로>`로 지정하세요. DiscoveryX는 사전을 생성하거나 다운로드하지 않습니다. Nuclei 템플릿은 없거나 YAML 파일이 하나도 없으면 최초 점검 전에 자동 설치합니다. 기존 템플릿이 있으면 다운로드나 업데이트를 하지 않습니다. 미리 설치하거나 갱신하려면 다음 명령을 사용하세요.
 
 ```powershell
 .\discoveryx.exe templates update

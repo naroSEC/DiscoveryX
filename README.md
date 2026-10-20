@@ -88,7 +88,7 @@ discoveryx tools install
 discoveryx doctor
 ```
 
-디렉터리 탐색에 사용할 사전은 `wordlists/common.txt`에 직접 넣어 주세요. 다른 사전은 `--wordlist`로 지정할 수 있습니다. Nuclei 템플릿은 첫 점검에서 관리 폴더가 비어 있으면 자동 설치합니다. 첫 설치에는 다운로드와 인덱스 생성 시간이 필요합니다. 미리 설치하거나 이후에 갱신하려면 다음 명령을 사용하세요.
+저장소에는 기본 디렉터리 탐색 사전인 [`wordlists/common.txt`](wordlists/common.txt)가 포함되어 있습니다. 프로젝트 루트에서 실행하면 이 파일을 사용하며, 다른 사전은 `--wordlist`로 지정할 수 있습니다. `go install`로 설치한 뒤 다른 폴더에서 실행한다면 `--wordlist`에 사전의 실제 경로를 지정하세요. Nuclei 템플릿은 첫 점검에서 관리 폴더가 비어 있으면 자동 설치합니다. 첫 설치에는 다운로드와 인덱스 생성 시간이 필요합니다. 미리 설치하거나 이후에 갱신하려면 다음 명령을 사용하세요.
 
 ```powershell
 discoveryx templates update
@@ -101,7 +101,7 @@ discoveryx -u example.com
 ```
 
 > [!NOTE]
-> 사전은 직접 제공해야 합니다. Nuclei 템플릿의 최초 설치가 실패하면 원인과 재시도 명령을 표시하고 해당 단계를 실패로 남깁니다. `--template-auto-install=false`로 자동 최초 설치를 끌 수 있습니다.
+> 지정한 사전 파일이 없으면 디렉터리 탐색은 사유를 기록하고 건너뜁니다. Nuclei 템플릿의 최초 설치가 실패하면 원인과 재시도 명령을 표시하고 해당 단계를 실패로 남깁니다. `--template-auto-install=false`로 자동 최초 설치를 끌 수 있습니다.
 
 ## 사용 예제
 

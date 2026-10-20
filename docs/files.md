@@ -86,3 +86,5 @@
 - `internal/reporting/report.js`
 
 - `internal/engine/template_install_test.go`
+
+- `wordlists/common.txt`: 사용자가 제공한 기본 디렉터리 탐색 사전.
