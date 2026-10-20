@@ -13,7 +13,7 @@ discoveryx --help
 
 실행 파일은 `go env GOBIN`의 경로에 설치됩니다. 해당 값이 비어 있으면 `$(go env GOPATH)\bin`을 사용하므로 그 폴더를 PATH에 추가해 주세요. 설치된 명령은 아래 예제의 `.\discoveryx.exe` 대신 `discoveryx`로 실행할 수 있습니다.
 
-기본 설정과 기술별 확장자 룰은 실행 파일에도 포함됩니다. 현재 폴더의 `config.yaml` 또는 `configs/config.yaml`이 있으면 해당 파일을 읽으며, 없으면 내장 기본 설정을 사용합니다. 기본 기술 룰 파일이 없으면 내장 룰로 동작하고, 별도의 `--tech-rules <경로>`를 지정하면 그 파일을 사용합니다. `--tech-rules builtin`으로 내장 룰을 직접 선택할 수도 있습니다. 사전은 실행 파일에 내장되지 않습니다. 저장소에 포함된 `wordlists/common.txt`의 실제 경로를 `--wordlist`로 지정하거나 작업 폴더에 해당 파일을 배치하세요.
+기본 설정과 기술별 확장자 룰, 기본 사전은 실행 파일에 포함됩니다. 현재 폴더의 `config.yaml` 또는 `configs/config.yaml`이 있으면 해당 파일을 읽으며, 없으면 내장 기본 설정을 사용합니다. 기본 기술 룰 파일이 없으면 내장 룰로 동작하고, 별도의 `--tech-rules <경로>`를 지정하면 그 파일을 사용합니다. `--tech-rules builtin`으로 내장 룰을 직접 선택할 수도 있습니다. 사전은 기본적으로 `wordlist: builtin`으로 선택합니다. 다른 사전은 `--wordlist <경로>`로 지정할 수 있으며, 없는 사용자 파일을 내장 사전으로 조용히 대체하지 않습니다.
 
 소스에서 직접 빌드하려면 프로젝트 루트에서 다음을 실행하세요.
 
@@ -28,7 +28,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 필요한 도구가 없으면 해당 단계에서 공식 GitHub Releases 자산을 설치합니다. 기본 위치는 `%LOCALAPPDATA%\discoveryx\tools`이며 템플릿은 인접한 `templates` 디렉터리에서 관리합니다. Linux에서는 `os.UserCacheDir()` 아래를 사용합니다. `--tools-dir`, `--templates-dir`로 바꿀 수 있습니다. PATH의 동명 실행 파일을 임의로 선택하지 않으며, 정상적인 Manifest와 바이너리 해시가 있으면 재다운로드하지 않습니다.
 
-프로젝트 루트에서는 저장소에 포함된 기본 사전 `wordlists/common.txt`를 사용합니다. 다른 사전을 사용하거나 다른 작업 폴더에서 실행하려면 `--wordlist <경로>`로 지정하세요. DiscoveryX는 사전을 생성하거나 다운로드하지 않습니다. Nuclei 템플릿은 없거나 YAML 파일이 하나도 없으면 최초 점검 전에 자동 설치합니다. 기존 템플릿이 있으면 다운로드나 업데이트를 하지 않습니다. 미리 설치하거나 갱신하려면 다음 명령을 사용하세요.
+별도 사전을 지정하지 않으면 내장된 `common.txt`를 사용합니다. Feroxbuster 실행 전에 해당 내용을 실행 폴더의 `inputs/wordlist.txt`에 저장하고 실제 파일 경로로 전달합니다. 사용자 사전도 같은 방식으로 스냅샷을 보존합니다. 작업 폴더나 소스 저장소가 없어도 기본 사전을 사용할 수 있으며, 외부 사전을 다운로드하지 않습니다. Nuclei 템플릿은 없거나 YAML 파일이 하나도 없으면 최초 점검 전에 자동 설치합니다. 기존 템플릿이 있으면 다운로드나 업데이트를 하지 않습니다. 미리 설치하거나 갱신하려면 다음 명령을 사용하세요.
 
 ```powershell
 .\discoveryx.exe templates update
@@ -53,7 +53,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 기본 순서는 Naabu → Subfinder → Dnsx → Httpx → Katana → Feroxbuster → Nuclei입니다. `-ps first/last/both/off`로 포트 단계 위치를 정하고 `-sbf`, `-cwl`, `--dir`, `--nuc`는 `on/off`를 받습니다. 긴 별칭은 `--port-scan`, `--subfinder`, `--crawl`입니다. Cobra에 전달하기 전에 정확한 `-ps`, `-sbf`, `-cwl` 토큰과 `=값` 형식을 변환하므로 PowerShell/CMD에서도 멀티 문자 단축 옵션을 사용할 수 있습니다. 옵션 뒤의 `--`는 변환하지 않습니다.
 
-`-sbf off`라도 Dnsx와 Httpx는 원본 도메인으로 실행됩니다. 앞 단계가 실패해도 사용할 수 있는 입력이 있으면 다음 단계를 수행합니다. 웹 URL이 없으면 웹 단계는 사유를 남기고 건너뜁니다. 사전이나 템플릿이 없거나 템플릿 필터 결과가 0개인 경우도 성공적인 점검으로 표시하지 않습니다. 전체 성공은 종료 코드 0, 잘못된 설정·실패·부분 완료·중단은 1입니다. 요약의 각 단계 상태로 이유를 확인하세요.
+`-sbf off`라도 Dnsx와 Httpx는 원본 도메인으로 실행됩니다. 앞 단계가 실패해도 사용할 수 있는 입력이 있으면 다음 단계를 수행합니다. 웹 URL이 없으면 웹 단계는 사유를 남기고 건너뜁니다. 직접 지정한 사전이나 템플릿이 없거나 템플릿 필터 결과가 0개인 경우도 성공적인 점검으로 표시하지 않습니다. 전체 성공은 종료 코드 0, 잘못된 설정·실패·부분 완료·중단은 1입니다. 요약의 각 단계 상태로 이유를 확인하세요.
 
 `--web-only`에서는 Naabu/Subfinder/Dnsx를 건너뛰고 Httpx → Katana → Feroxbuster → Nuclei 순서로 진행합니다. Httpx는 단일 입력 URL의 상태·제목·기술 스택을 수집하며 디렉터리 확장자 선택에 전달합니다. `-nfs`로 입력 스킴을 유지하고 리다이렉트를 따라가지 않습니다. 세 웹 단계의 비활성화 옵션도 적용합니다. 완전한 URL은 스킴·포트·경로·쿼리를 유지하며, 도메인만 주면 Go HTTP 클라이언트가 HTTPS와 HTTP 순서로 HEAD 요청을 확인합니다. Httpx 실패 시에도 원래 입력 URL로 다음 단계를 진행합니다.
 
@@ -89,6 +89,8 @@ Feroxbuster·Nuclei의 기본 rate/concurrency와 `feroxbuster_scan_limit`은 0�
 기존 YAML에 양수 제한이 남아 있으면 그 값이 계속 우선합니다. CLI에서 `--feroxbuster-rate 0 --feroxbuster-concurrency 0 --feroxbuster-scan-limit 0 --nuclei-rate 0 --nuclei-concurrency 0`을 지정하면 도구 기본값으로 되돌릴 수 있습니다. 단계당 30분·전체 2시간의 시간 제한은 별개이며 `--stage-timeout`, `--max-duration`으로 늘릴 수 있습니다. 재개는 저장된 설정을 유지하므로 변경한 속도·동시성 설정을 적용하려면 새 실행을 시작하세요.
 
 기술별 확장자는 `configs/tech-extensions.yaml`에 대소문자 무시 정규식으로 관리합니다. 기본 `xml,txt,html`에 PHP→php, Java/JSP→jsp, ASP/ASP.NET→asp/aspx를 추가합니다. 중복과 대문자를 정리하며 IIS만으로 ASP.NET을 추정하지 않습니다. 기술 탐지는 휴리스틱입니다.
+
+이전 설정의 `wordlist: wordlists/common.txt`는 외부 파일 지정으로 처리됩니다. 내장 사전을 쓰려면 `wordlist: builtin`으로 바꾸거나 `--wordlist builtin`으로 덮어쓰세요. 명시적인 CLI 옵션은 환경 변수와 설정 파일보다 우선합니다.
 
 ## 실행 파일과 템플릿 업데이트
 

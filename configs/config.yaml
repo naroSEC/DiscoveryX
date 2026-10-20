@@ -12,7 +12,8 @@ syn_fallback: false
 smart_scan: false
 service_version: true
 ports: top-1000
-wordlist: wordlists/common.txt
+# Embedded common.txt; set a file path to use your own dictionary.
+wordlist: builtin
 tech_rules: configs/tech-extensions.yaml
 extensions: []
 crawl_depth: 3

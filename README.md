@@ -51,7 +51,7 @@ go install github.com/naroSEC/DiscoveryX/cmd/discoveryx@latest
 discoveryx --help
 ```
 
-기본 설정과 기술별 확장자 룰은 실행 파일에 포함되어 있어, 저장소를 따로 내려받지 않아도 됩니다. 직접 작성한 설정은 `--config`, 기술 매핑은 `--tech-rules`로 지정할 수 있습니다.
+기본 설정과 기술별 확장자 룰, 디렉터리 탐색 사전은 실행 파일에 포함되어 있어, 저장소를 따로 내려받지 않아도 됩니다. 직접 작성한 설정은 `--config`, 기술 매핑은 `--tech-rules`로 지정할 수 있습니다.
 
 <details>
 <summary>설치 후 discoveryx 명령을 찾지 못한다면</summary>
@@ -88,7 +88,7 @@ discoveryx tools install
 discoveryx doctor
 ```
 
-저장소에는 기본 디렉터리 탐색 사전인 [`wordlists/common.txt`](wordlists/common.txt)가 포함되어 있습니다. 프로젝트 루트에서 실행하면 이 파일을 사용하며, 다른 사전은 `--wordlist`로 지정할 수 있습니다. `go install`로 설치한 뒤 다른 폴더에서 실행한다면 `--wordlist`에 사전의 실제 경로를 지정하세요. Nuclei 템플릿은 첫 점검에서 관리 폴더가 비어 있으면 자동 설치합니다. 첫 설치에는 다운로드와 인덱스 생성 시간이 필요합니다. 미리 설치하거나 이후에 갱신하려면 다음 명령을 사용하세요.
+기본 디렉터리 탐색 사전인 [`wordlists/common.txt`](wordlists/common.txt)는 실행 파일에 내장되어 있습니다. 별도 사전을 지정하지 않으면 어디에서 실행하든 내장 사전을 사용합니다. `go install`로 설치해도 별도의 사전 파일이 필요하지 않습니다. 다른 사전은 `--wordlist <경로>`로 지정하세요. Nuclei 템플릿은 첫 점검에서 관리 폴더가 비어 있으면 자동 설치합니다. 첫 설치에는 다운로드와 인덱스 생성 시간이 필요합니다. 미리 설치하거나 이후에 갱신하려면 다음 명령을 사용하세요.
 
 ```powershell
 discoveryx templates update
@@ -101,7 +101,7 @@ discoveryx -u example.com
 ```
 
 > [!NOTE]
-> 지정한 사전 파일이 없으면 디렉터리 탐색은 사유를 기록하고 건너뜁니다. Nuclei 템플릿의 최초 설치가 실패하면 원인과 재시도 명령을 표시하고 해당 단계를 실패로 남깁니다. `--template-auto-install=false`로 자동 최초 설치를 끌 수 있습니다.
+> 직접 지정한 사전 파일이 없으면 디렉터리 탐색은 사유를 기록하고 건너뜁니다. Nuclei 템플릿의 최초 설치가 실패하면 원인과 재시도 명령을 표시하고 해당 단계를 실패로 남깁니다. `--template-auto-install=false`로 자동 최초 설치를 끌 수 있습니다.
 
 ## 사용 예제
 
@@ -178,6 +178,8 @@ limits:
 단계별 시간 제한은 기본 30분, 전체 실행 시간은 2시간입니다. 큰 사전을 사용해 시간이 더 필요하다면 `--stage-timeout 2h --max-duration 4h`처럼 조정하세요.
 
 속도와 동시성은 도구별로 조정할 수 있습니다. 디렉터리 탐색 확장자는 Httpx의 기술 탐지 결과와 [기술 매핑 규칙](configs/tech-extensions.yaml)을 조합해 정합니다. 예를 들어 PHP가 탐지되면 기본 확장자에 `php`를 추가하고, IIS만 탐지된 경우에는 ASP.NET으로 단정하지 않습니다.
+
+기본 사전 설정은 `wordlist: builtin`입니다. 이전 설정 파일에 `wordlist: wordlists/common.txt`가 남아 있다면 `builtin`으로 바꾸거나 `--wordlist builtin`으로 내장 사전을 선택하세요.
 
 전체 옵션은 `discoveryx.exe --help`, 세부 동작은 [사용 가이드](docs/usage.md)에서 확인할 수 있습니다.
 

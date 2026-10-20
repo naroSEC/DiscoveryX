@@ -88,3 +88,6 @@
 - `internal/engine/template_install_test.go`
 
 - `wordlists/common.txt`: 사용자가 제공한 기본 디렉터리 탐색 사전.
+
+- `wordlists/resources.go`: 기본 사전 내장 리소스.
+- `internal/engine/wordlist_test.go`: 내장·사용자 사전 선택과 재개 검증.

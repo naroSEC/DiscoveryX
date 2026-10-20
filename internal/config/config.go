@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/naroSEC/DiscoveryX/configs"
 	"github.com/naroSEC/DiscoveryX/internal/scope"
+	"github.com/naroSEC/DiscoveryX/wordlists"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
@@ -15,6 +16,14 @@ import (
 
 const BuiltinTechRules = "builtin"
 const DefaultTechRules = "configs/tech-extensions.yaml"
+const BuiltinWordlist = "builtin"
+
+func ReadWordlist(path string) ([]byte, error) {
+	if path == BuiltinWordlist {
+		return wordlists.ReadDefault()
+	}
+	return os.ReadFile(path)
+}
 
 func ReadTechRules(path string) ([]byte, error) {
 	if path == BuiltinTechRules {
@@ -65,7 +74,7 @@ type Config struct {
 func Default() Config {
 	base, _ := os.UserCacheDir()
 	base = filepath.Join(base, "discoveryx")
-	c := Config{TemplateAutoInstall: true, Output: "runs", ToolsDir: filepath.Join(base, "tools"), TemplatesDir: filepath.Join(base, "templates"), PortScan: "first", Subfinder: "on", Crawl: "on", Directory: "on", Nuclei: "on", ScanType: "connect", ServiceVersion: true, Ports: "top-1000", Wordlist: "wordlists/common.txt", TechRules: BuiltinTechRules, CrawlDepth: 3, DirectoryDepth: 3, Tags: "cve,vuln,vkev,kev", Severity: "medium,high,critical", HTTPTimeout: 10 * time.Second, StageTimeout: 30 * time.Minute, MaxDuration: 2 * time.Hour, MaxTargets: 100, LogLevel: "info", Limits: map[string]Limit{}}
+	c := Config{TemplateAutoInstall: true, Output: "runs", ToolsDir: filepath.Join(base, "tools"), TemplatesDir: filepath.Join(base, "templates"), PortScan: "first", Subfinder: "on", Crawl: "on", Directory: "on", Nuclei: "on", ScanType: "connect", ServiceVersion: true, Ports: "top-1000", Wordlist: BuiltinWordlist, TechRules: BuiltinTechRules, CrawlDepth: 3, DirectoryDepth: 3, Tags: "cve,vuln,vkev,kev", Severity: "medium,high,critical", HTTPTimeout: 10 * time.Second, StageTimeout: 30 * time.Minute, MaxDuration: 2 * time.Hour, MaxTargets: 100, LogLevel: "info", Limits: map[string]Limit{}}
 	for _, n := range []string{"naabu", "subfinder", "dnsx", "httpx", "katana", "feroxbuster", "nuclei"} {
 		c.Limits[n] = Limit{Rate: 20, Concurrency: 5}
 	}
@@ -194,7 +203,11 @@ func one(s string, choices ...string) bool {
 	return false
 }
 func (c *Config) Absolute() error {
-	for _, p := range []*string{&c.Output, &c.ToolsDir, &c.TemplatesDir, &c.Wordlist} {
+	paths := []*string{&c.Output, &c.ToolsDir, &c.TemplatesDir}
+	if c.Wordlist != BuiltinWordlist {
+		paths = append(paths, &c.Wordlist)
+	}
+	for _, p := range paths {
 		s, e := filepath.Abs(*p)
 		if e != nil {
 			return e

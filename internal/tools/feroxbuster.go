@@ -58,7 +58,7 @@ func Extensions(tech, extra []string, r TechRules) ([]string, error) {
 func Feroxbuster() Tool {
 	return Adapter{name: "feroxbuster", inputs: []string{"web_urls", "wordlist"}, build: func(in Input) ([]Invocation, error) {
 		if st, e := os.Stat(in.Config.Wordlist); e != nil || st.IsDir() {
-			return nil, fmt.Errorf("wordlist missing: provide %s or --wordlist; DiscoveryX never downloads/creates a wordlist", in.Config.Wordlist)
+			return nil, fmt.Errorf("wordlist missing: expected a materialized dictionary at %s", in.Config.Wordlist)
 		}
 		b, e := config.ReadTechRules(in.Config.TechRules)
 		if e != nil {

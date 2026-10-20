@@ -65,11 +65,21 @@ func TestBundledDefaultsOutsideSourceCheckout(t *testing.T) {
 	if c.TechRules != BuiltinTechRules || c.Limits["feroxbuster"].Rate != 0 {
 		t.Fatal(c)
 	}
+	if c.Wordlist != BuiltinWordlist {
+		t.Fatal("default wordlist is not embedded")
+	}
 	if e = c.Absolute(); e != nil {
 		t.Fatal(e)
 	}
 	if c.TechRules != BuiltinTechRules {
 		t.Fatal("builtin rules converted into a file path")
+	}
+	if c.Wordlist != BuiltinWordlist {
+		t.Fatal("builtin wordlist converted into a file path")
+	}
+	words, err := ReadWordlist(c.Wordlist)
+	if err != nil || !bytes.Contains(words, []byte(".git/HEAD")) {
+		t.Fatal("bundled dictionary unavailable", err)
 	}
 	b, e := ReadTechRules(c.TechRules)
 	if e != nil || !bytes.Contains(b, []byte("extensions: [php]")) {
@@ -77,5 +87,20 @@ func TestBundledDefaultsOutsideSourceCheckout(t *testing.T) {
 	}
 	if _, e = ReadTechRules("missing-custom-rules.yaml"); !os.IsNotExist(e) {
 		t.Fatalf("custom missing file silently replaced: %v", e)
+	}
+}
+
+func TestCustomWordlistIsNeverSilentlyReplaced(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "사전 파일.txt")
+	want := []byte("custom-path-only\n")
+	if err := os.WriteFile(p, want, 0600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ReadWordlist(p)
+	if err != nil || !bytes.Equal(want, got) {
+		t.Fatalf("custom dictionary changed: %q %v", got, err)
+	}
+	if _, err = ReadWordlist(p + ".missing"); !os.IsNotExist(err) {
+		t.Fatal("missing custom file replaced with default", err)
 	}
 }

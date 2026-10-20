@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-var Version = "0.3.0"
+var Version = "0.3.1"
 
 func Normalize(args []string) []string {
 	out := append([]string{}, args...)
@@ -115,7 +115,7 @@ func bind(f *pflag.FlagSet, c *config.Config, path *string) {
 	f.BoolVar(&c.ServiceVersion, "service-version", c.ServiceVersion, "Enable service versions when local probes exist")
 	f.StringVar(&c.Probes, "probes", c.Probes, "nmap-service-probes file")
 	f.StringVar(&c.Ports, "ports", c.Ports, "top-1000 or explicit TCP ports/ranges")
-	f.StringVar(&c.Wordlist, "wordlist", c.Wordlist, "User-provided directory wordlist")
+	f.StringVar(&c.Wordlist, "wordlist", c.Wordlist, "Directory wordlist path or builtin for the embedded default")
 	f.StringVar(&c.TechRules, "tech-rules", c.TechRules, "YAML technology-to-extension rules")
 	f.StringSliceVar(&c.Extensions, "extensions", c.Extensions, "Additional directory extensions")
 	f.IntVar(&c.CrawlDepth, "crawl-depth", c.CrawlDepth, "Crawl depth")
@@ -306,7 +306,7 @@ func doctorCommand(c *config.Config, out io.Writer) *cobra.Command {
 			}
 			fmt.Fprintf(out, "%s: version=%s check=%v\n", n, v, e)
 		}
-		_, wordlistErr := os.Stat(c.Wordlist)
+		_, wordlistErr := config.ReadWordlist(c.Wordlist)
 		fmt.Fprintf(out, "Wordlist: %s (%v)\nService probes: %s\nSYN prerequisites: %v\n", c.Wordlist, wordlistErr, tools.FindProbes(c.Probes), tools.SYNAvailable())
 		hash, count, err := tools.Tree(c.TemplatesDir)
 		fmt.Fprintf(out, "Templates: files=%d sha256=%s check=%v\n", count, hash, err)

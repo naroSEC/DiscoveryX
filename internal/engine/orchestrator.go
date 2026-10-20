@@ -421,9 +421,6 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		files = append(files, in.URLsFile)
 	}
 	if s.Tool == "feroxbuster" {
-		if st, er := os.Stat(e.Config.Wordlist); er != nil || st.IsDir() {
-			return 0, files, "wordlist missing; provide " + e.Config.Wordlist + " or --wordlist", nil
-		}
 		if e.Meta.Resources == nil {
 			e.Meta.Resources = map[string]string{}
 		}
@@ -437,9 +434,12 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 			if resource.name == "tech-extensions.yaml" {
 				b, re = config.ReadTechRules(resource.source)
 			} else {
-				b, re = os.ReadFile(resource.source)
+				b, re = config.ReadWordlist(resource.source)
 			}
 			if re != nil {
+				if resource.name == "wordlist.txt" {
+					return 0, files, "wordlist unavailable; check --wordlist or use --wordlist builtin: " + re.Error(), nil
+				}
 				return 0, files, "", re
 			}
 			if resource.source != config.BuiltinTechRules {
