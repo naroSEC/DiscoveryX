@@ -1,0 +1,37 @@
+# CLI > DISCOVERYX_<UPPERCASE_KEY> > this YAML > built-in defaults.
+# tools_dir/templates_dir default to the user's OS cache (LOCALAPPDATA on Windows).
+output: runs
+port_scan: first
+subfinder: on
+crawl: on
+directory: on
+nuclei: on
+web_only: false
+scan_type: connect
+syn_fallback: false
+smart_scan: false
+service_version: true
+ports: top-1000
+wordlist: wordlists/common.txt
+tech_rules: configs/tech-extensions.yaml
+extensions: []
+crawl_depth: 3
+directory_depth: 3
+tags: cve,vuln,vkev,kev
+severity: medium,high,critical
+approved: []
+excluded: []
+approved_ips: []
+http_timeout: 10s
+stage_timeout: 30m
+max_duration: 2h
+max_targets: 100
+log_level: info
+limits:
+  naabu: {rate: 20, concurrency: 5}
+  subfinder: {rate: 10, concurrency: 5}
+  dnsx: {rate: 20, concurrency: 5}
+  httpx: {rate: 20, concurrency: 5}
+  katana: {rate: 20, concurrency: 5}
+  feroxbuster: {rate: 10, concurrency: 5}
+  nuclei: {rate: 20, concurrency: 5}

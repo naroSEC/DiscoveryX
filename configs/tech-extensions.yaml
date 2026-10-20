@@ -1,0 +1,9 @@
+# Case-insensitive regex; heuristic, not proof of the language in use.
+base: [xml, txt, html]
+rules:
+  - match: ['\bjava\b', '\bjsp\b']
+    extensions: [jsp]
+  - match: ['\bphp\b']
+    extensions: [php]
+  - match: ['\basp\b', 'asp\.net']
+    extensions: [asp, aspx]

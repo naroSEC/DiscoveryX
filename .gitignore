@@ -1,0 +1,8 @@
+/discoveryx.exe
+/discoveryx
+runs/
+wordlists/*.txt
+*.test
+*.test.exe
+coverage.out
+.validation/
