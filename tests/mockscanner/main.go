@@ -33,7 +33,7 @@ func main() {
 	}
 	name := strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
 	if has("-h") || has("--help") {
-		fmt.Println(" -h --help -version --version -config -duc -d -silent -nc -rl -o -l -a -aaaa -cname -j -t -retry -sc -title -td -ip -cdn -server -timeout -u -jc -kf -fs -cs -cos -dr -do -c -p --depth -w -s --rate-limit --scan-limit --timeout --no-state --json --dont-scan --dont-extract-links -x -list -rate -top-ports -ss -sV -sV-probes -ud -tags -pt -etags -ni -dut -bs -tl -ut -tv")
+		fmt.Println(" -h --help -version --version -config -duc -d -silent -nc -rl -o -l -a -aaaa -cname -j -t -retry -sc -title -td -ip -cdn -server -timeout -nfs -u -jc -kf -fs -cs -cos -dr -do -c -p --depth -w -s --rate-limit --scan-limit --timeout --no-state --json --dont-scan --dont-extract-links -x -list -rate -top-ports -ss -sV -sV-probes -ud -tags -pt -etags -ni -dut -bs -tl -ut -tv")
 		return
 	}
 	if has("-version") || has("--version") {
@@ -107,7 +107,11 @@ func main() {
 	case "httpx":
 		b, _ := os.ReadFile(arg("-l"))
 		for _, h := range strings.Fields(string(b)) {
-			rows = append(rows, map[string]any{"url": "https://" + h, "host": "127.0.0.1", "status_code": 200, "title": "fixture", "tech": []string{"PHP"}})
+			u := h
+			if !strings.Contains(h, "://") {
+				u = "https://" + h
+			}
+			rows = append(rows, map[string]any{"url": u, "host": "127.0.0.1", "status_code": 200, "title": "fixture", "tech": []string{"PHP"}})
 		}
 	case "katana":
 		rows = []map[string]any{{"request": map[string]any{"endpoint": "https://api.fixture.test/path?a=1", "source": "https://api.fixture.test/", "method": "GET"}}, {"request": map[string]any{"endpoint": "https://outside.test/"}}}
@@ -130,6 +134,9 @@ func main() {
 	for _, r := range rows {
 		b, _ := json.Marshal(r)
 		text += string(b) + "\n"
+	}
+	if os.Getenv("MOCK_EMPTY_TOOL") == name {
+		text = ""
 	}
 	if os.Getenv("MOCK_MALFORMED") == name {
 		text += "{broken\n"

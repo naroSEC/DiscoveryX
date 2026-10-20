@@ -34,3 +34,15 @@ func TestHelp(t *testing.T) {
 		t.Fatal(out.String())
 	}
 }
+
+func TestNoTargetRegistrationFlags(t *testing.T) {
+	r, err := New(nil, &bytes.Buffer{}, &bytes.Buffer{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, flag := range []string{"approved", "approved-ips"} {
+		if r.PersistentFlags().Lookup(flag) != nil {
+			t.Fatalf("obsolete registration flag remains: %s", flag)
+		}
+	}
+}

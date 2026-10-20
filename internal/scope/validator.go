@@ -35,35 +35,22 @@ func Host(input string) (string, error) {
 }
 
 type Validator struct {
-	Allowed     []string `json:"allowed"`
-	Excluded    []string `json:"excluded"`
-	ApprovedIPs []string `json:"approved_ips"`
+	Allowed  []string `json:"allowed"`
+	Excluded []string `json:"excluded"`
 }
 
-func New(target string, allowed, excluded, ips []string) (Validator, error) {
+func New(target string, excluded []string) (Validator, error) {
 	h, e := Host(target)
 	if e != nil {
 		return Validator{}, e
 	}
-	v := Validator{Allowed: []string{h}, ApprovedIPs: ips}
-	for _, x := range allowed {
-		h, e = Host(x)
-		if e != nil {
-			return v, e
-		}
-		v.Allowed = append(v.Allowed, h)
-	}
+	v := Validator{Allowed: []string{h}}
 	for _, x := range excluded {
 		h, e = Host(x)
 		if e != nil {
 			return v, e
 		}
 		v.Excluded = append(v.Excluded, h)
-	}
-	for _, ip := range ips {
-		if net.ParseIP(ip) == nil {
-			return v, fmt.Errorf("approved_ips requires literal IP: %s", ip)
-		}
 	}
 	if !v.Contains(target) {
 		return v, fmt.Errorf("target is excluded")
@@ -85,19 +72,6 @@ func (v Validator) Contains(s string) bool {
 	}
 	for _, d := range v.Allowed {
 		if boundary(h, d) {
-			return true
-		}
-	}
-	return false
-}
-func (v Validator) PortIP(ip string) bool {
-	for _, p := range v.ApprovedIPs {
-		if p == ip {
-			return true
-		}
-	}
-	for _, d := range v.Allowed {
-		if net.ParseIP(d) != nil && d == ip {
 			return true
 		}
 	}

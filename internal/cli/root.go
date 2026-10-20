@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-var Version = "0.1.0"
+var Version = "0.2.0"
 
 func Normalize(args []string) []string {
 	out := append([]string{}, args...)
@@ -96,7 +96,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 }
 func bind(f *pflag.FlagSet, c *config.Config, path *string) {
 	f.StringVar(path, "config", *path, "YAML configuration path (CLI > DISCOVERYX_* > YAML > defaults)")
-	f.StringVarP(&c.Target, "url", "u", c.Target, "Authorized domain or HTTP URL")
+	f.StringVarP(&c.Target, "url", "u", c.Target, "Target domain or HTTP URL")
 	f.StringVarP(&c.Output, "output", "o", c.Output, "Output directory")
 	f.StringVar(&c.ToolsDir, "tools-dir", c.ToolsDir, "Managed executable directory")
 	f.StringVar(&c.TemplatesDir, "templates-dir", c.TemplatesDir, "Managed Nuclei template directory")
@@ -105,7 +105,7 @@ func bind(f *pflag.FlagSet, c *config.Config, path *string) {
 	f.StringVar(&c.Crawl, "crawl", c.Crawl, "on/off (also -cwl)")
 	f.StringVar(&c.Directory, "dir", c.Directory, "on/off")
 	f.StringVar(&c.Nuclei, "nuc", c.Nuclei, "on/off")
-	f.BoolVar(&c.WebOnly, "web-only", c.WebOnly, "Only crawl, directory and vulnerability stages; their switches still apply")
+	f.BoolVar(&c.WebOnly, "web-only", c.WebOnly, "Fingerprint the input URL with httpx, then run enabled web stages")
 	f.StringVar(&c.ScanType, "scan-type", c.ScanType, "connect/syn")
 	f.BoolVar(&c.SYNFallback, "syn-fallback", c.SYNFallback, "Explicitly allow Connect fallback if SYN is unavailable")
 	f.BoolVar(&c.SmartScan, "smart-scan", c.SmartScan, "Enable Naabu Smart Scan (-ss)")
@@ -120,9 +120,7 @@ func bind(f *pflag.FlagSet, c *config.Config, path *string) {
 	f.StringVar(&c.Tags, "nuclei-tags", c.Tags, "Nuclei template tags")
 	f.StringVar(&c.Severity, "nuclei-severity", c.Severity, "Nuclei severities")
 	f.StringVar(&c.LogLevel, "log-level", c.LogLevel, "info/error/debug (full logs are always saved)")
-	f.StringSliceVar(&c.Approved, "approved", c.Approved, "Additional explicitly authorized domains")
 	f.StringSliceVar(&c.Excluded, "exclude", c.Excluded, "Excluded hosts and subdomains")
-	f.StringSliceVar(&c.ApprovedIPs, "approved-ips", c.ApprovedIPs, "Explicitly authorized port scan IPs (required for shared provider addresses)")
 	f.DurationVar(&c.HTTPTimeout, "http-timeout", c.HTTPTimeout, "HTTP request timeout")
 	f.DurationVar(&c.StageTimeout, "stage-timeout", c.StageTimeout, "Maximum duration per stage")
 	f.DurationVar(&c.MaxDuration, "max-duration", c.MaxDuration, "Maximum active duration across resumes")

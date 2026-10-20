@@ -16,7 +16,7 @@ func TestArgumentsAgainstVerifiedWindowsHelp(t *testing.T) {
 	c.Wordlist = filepath.Join(dir, "fixture-wordlist")
 	os.WriteFile(c.Wordlist, []byte("fixture\n"), 0600)
 	c.TechRules = filepath.Join("..", "..", "configs", "tech-extensions.yaml")
-	v, _ := scope.New("fixture.test", nil, nil, nil)
+	v, _ := scope.New("fixture.test", nil)
 	in := Input{Config: c, RunDir: dir, Scope: v, Services: []model.WebService{{URL: "https://fixture.test/", Hostname: "fixture.test"}}, Phase: "initial", TemplatePaths: []string{"fixture.yaml"}}
 	for name, adapter := range Registry() {
 		t.Run(name, func(t *testing.T) {
@@ -37,5 +37,20 @@ func TestArgumentsAgainstVerifiedWindowsHelp(t *testing.T) {
 				}
 			}
 		})
+	}
+	c.WebOnly = true
+	in.Config = c
+	b, e := os.ReadFile(filepath.Join("..", "..", "docs", "httpx-help.txt"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	calls, e := HTTPX().BuildArgs(in)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, arg := range calls[0].Args {
+		if len(arg) > 0 && arg[0] == '-' && !Supports(string(b), arg) {
+			t.Errorf("httpx web-only unsupported flag: %s", arg)
+		}
 	}
 }

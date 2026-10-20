@@ -3,7 +3,7 @@ package scope
 import "testing"
 
 func TestBoundaries(t *testing.T) {
-	v, e := New("Example.com", nil, []string{"private.example.com"}, nil)
+	v, e := New("Example.com", []string{"private.example.com"})
 	if e != nil {
 		t.Fatal(e)
 	}

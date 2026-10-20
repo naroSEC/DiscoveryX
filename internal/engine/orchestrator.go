@@ -47,7 +47,7 @@ func (e *Engine) Initialize() error {
 	if err := e.Config.Absolute(); err != nil {
 		return err
 	}
-	v, err := scope.New(e.Config.Target, e.Config.Approved, e.Config.Excluded, e.Config.ApprovedIPs)
+	v, err := scope.New(e.Config.Target, e.Config.Excluded)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func Resume(dir string, out io.Writer) (*Engine, error) {
 	if err = meta.Config.Validate(); err != nil {
 		return nil, err
 	}
-	v, err := scope.New(meta.Config.Target, meta.Config.Approved, meta.Config.Excluded, meta.Config.ApprovedIPs)
+	v, err := scope.New(meta.Config.Target, meta.Config.Excluded)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func Resume(dir string, out io.Writer) (*Engine, error) {
 	}
 	plan := Plan(meta.Config)
 	if len(plan) != len(state.Stages) {
-		return nil, fmt.Errorf("stage plan changed")
+		return nil, fmt.Errorf("stage plan changed; start a new run")
 	}
 	for i, s := range plan {
 		if s.Name != state.Stages[i].Name {
@@ -329,9 +329,16 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		}
 	}
 	if s.Tool == "httpx" {
-		for _, a := range d.Assets {
-			if a.Resolved {
-				hosts = append(hosts, a.Hostname)
+		if e.Config.WebOnly {
+			hosts = nil
+			for _, w := range d.WebServices {
+				hosts = append(hosts, w.URL)
+			}
+		} else {
+			for _, a := range d.Assets {
+				if a.Resolved {
+					hosts = append(hosts, a.Hostname)
+				}
 			}
 		}
 	}
@@ -359,10 +366,6 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 				continue
 			}
 			for _, ip := range addresses {
-				if !in.Scope.PortIP(ip) {
-					fmt.Fprintf(e.errors, "port target %s (%s) excluded: explicit --approved-ips required to avoid scanning shared provider IPs\n", h, ip)
-					continue
-				}
 				if !contains(e.State.ScannedIPs, ip) {
 					ips = append(ips, ip)
 					in.PortHosts[ip] = h
@@ -371,7 +374,7 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		}
 		hosts = e.limit(parser.Unique(ips))
 		if len(hosts) == 0 {
-			return 0, nil, "no new explicitly approved IPs for port scan; use --approved-ips", nil
+			return 0, nil, "no new resolved IPs for port scan", nil
 		}
 	}
 	in.Hosts = hosts
@@ -529,6 +532,14 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		}
 	}
 	before := dataCount(*d)
+	beforeHTTPX := 0
+	if s.Tool == "httpx" {
+		for _, w := range d.WebServices {
+			if w.Tool == "httpx" {
+				beforeHTTPX++
+			}
+		}
+	}
 	var runErrors []error
 	for _, call := range calls {
 		if ctx.Err() != nil {
@@ -585,6 +596,14 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		}
 	}
 	count = dataCount(*d) - before
+	if s.Tool == "httpx" {
+		count = -beforeHTTPX
+		for _, w := range d.WebServices {
+			if w.Tool == "httpx" {
+				count++
+			}
+		}
+	}
 	err = errors.Join(runErrors...)
 	if s.Tool == "naabu" && err == nil {
 		e.State.ScannedIPs = parser.Unique(append(e.State.ScannedIPs, hosts...))

@@ -47,7 +47,7 @@ func TestNucleiNoAutomaticUpdate(t *testing.T) {
 	}
 }
 func TestScopeAndDuplicateParsers(t *testing.T) {
-	v, _ := scope.New("fixture.test", nil, nil, nil)
+	v, _ := scope.New("fixture.test", nil)
 	in := Input{Scope: v}
 	d := model.Data{}
 	Subfinder().Parse(strings.NewReader("api.fixture.test\napi.fixture.test\nfixture.test.attacker.test\n"), &d, in)

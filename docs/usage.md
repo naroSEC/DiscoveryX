@@ -1,6 +1,6 @@
 # 사용 가이드
 
-Go 기반 Windows 우선 보안 정보 수집 CLI입니다. 승인한 도메인과 하위 도메인을 대상으로 공식 스캐너를 순차 실행하고, 원본 출력·정규화 결과·상태·요약을 로컬에 저장합니다. 외부 스캐너의 동작을 재구현하지 않습니다.
+Go 기반 Windows 우선 보안 정보 수집 CLI입니다. 입력한 도메인과 하위 도메인을 대상으로 공식 스캐너를 순차 실행하고, 원본 출력·정규화 결과·상태·요약을 로컬에 저장합니다. 외부 스캐너의 동작을 재구현하지 않습니다.
 
 ## 빌드와 시작
 
@@ -26,7 +26,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 ## 실행 예제
 
-아래 도메인은 사용법을 설명하기 위한 값입니다. 실제 실행 시 승인받은 대상으로 바꾸세요.
+아래 도메인은 사용법을 설명하기 위한 값입니다. 실행할 대상 도메인으로 바꿔 주세요.
 
 ```powershell
 .\discoveryx.exe -u example.com
@@ -36,7 +36,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 .\discoveryx.exe -u example.com -sbf off
 .\discoveryx.exe -u https://example.com/app?q=1 --web-only
 .\discoveryx.exe -u example.com --wordlist "C:\보안 자료\common.txt" --output "C:\진단 결과"
-.\discoveryx.exe -u example.com --approved-ips 192.0.2.10 --ports 80,443,8000-8100
+.\discoveryx.exe -u example.com --ports 80,443,8000-8100
 .\discoveryx.exe resume --run "runs\example.com_실행시각"
 ```
 
@@ -44,15 +44,13 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 `-sbf off`라도 Dnsx와 Httpx는 원본 도메인으로 실행됩니다. 앞 단계가 실패해도 사용할 수 있는 입력이 있으면 다음 단계를 수행합니다. 웹 URL이 없으면 웹 단계는 사유를 남기고 건너뜁니다. 사전이나 템플릿이 없거나 템플릿 필터 결과가 0개인 경우도 성공적인 점검으로 표시하지 않습니다. 전체 성공은 종료 코드 0, 잘못된 설정·실패·부분 완료·중단은 1입니다. 요약의 각 단계 상태로 이유를 확인하세요.
 
-`--web-only`가 Naabu/Subfinder/Dnsx/Httpx 설정보다 우선하며 세 웹 단계만 계획합니다. 세 웹 단계의 비활성화 옵션은 계속 적용합니다. 완전한 HTTP(S) URL은 경로와 쿼리를 유지해 사용합니다. 도메인만 주면 Go HTTP 클라이언트가 HTTPS, HTTP 순으로 HEAD 요청을 보내며 리다이렉트를 따라가지 않습니다. 하나의 입력 URL을 사용하고 크롤링 결과를 디렉터리/Nuclei의 새 대상으로 추가하지 않습니다.
+`--web-only`에서는 Naabu/Subfinder/Dnsx를 건너뛰고 Httpx → Katana → Feroxbuster → Nuclei 순서로 진행합니다. Httpx는 단일 입력 URL의 상태·제목·기술 스택을 수집하며 디렉터리 확장자 선택에 전달합니다. `-nfs`로 입력 스킴을 유지하고 리다이렉트를 따라가지 않습니다. 세 웹 단계의 비활성화 옵션도 적용합니다. 완전한 URL은 스킴·포트·경로·쿼리를 유지하며, 도메인만 주면 Go HTTP 클라이언트가 HTTPS와 HTTP 순서로 HEAD 요청을 확인합니다. Httpx 실패 시에도 원래 입력 URL로 다음 단계를 진행합니다.
 
-## 승인 범위와 부하
+## 탐색 범위와 부하
 
-호스트 경계로 비교하므로 `api.example.com`은 허용하고 `example.com.attacker.test`는 차단합니다. `--approved`는 추가로 승인한 도메인, `--exclude`는 제외할 도메인과 그 하위 호스트입니다. CNAME, CDN, 외부 링크는 승인 범위를 넓히지 않습니다. 외부 결과는 별도로 저장하며 다음 단계 입력을 만들 때 다시 검사합니다.
+호스트 경계로 비교하므로 `api.example.com`은 포함하고 `example.com.attacker.test`는 제외합니다. `--exclude`로 특정 도메인과 그 하위 호스트를 탐색에서 뺄 수 있습니다. CNAME, CDN, 외부 링크가 발견되어도 입력한 대상 범위를 넓히지 않습니다. 외부 결과는 별도로 저장하고 다음 단계 입력을 만들 때 다시 검사합니다.
 
-공유 CDN/호스팅 IP의 소유권은 DNS만으로 판별할 수 없습니다. **현재 버전은 포트 스캔 IP에 명시적인 `--approved-ips` 승인을 요구합니다.** 입력 자체가 IP이면 그 IP는 승인으로 취급합니다. 도메인에서 해석된 미승인 IP는 로그에 기록하고 스캔하지 않습니다. 승인 IP가 없으면 포트 단계는 Skipped가 됩니다. 이 정책은 단순히 도메인이 가리킨다는 이유로 제3자 공유 IP를 스캔하는 것을 막기 위한 보수적인 구현입니다.
-
-포트 스캔은 도메인을 직접 넘기는 대신 승인된 IP를 고정해 전달하고, 결과에는 원래 호스트명을 연결합니다. `both`에서는 동일 실행 안에서 완료한 IP와 동일 조건의 포트 스캔을 재실행하지 않습니다. 마지막 단계는 유효한 호스트 중 새롭게 승인된 IP만 사용합니다. 포트 스캔 기본은 Connect(`-s c`)이며 Smart Scan(`-ss`)은 별도 옵션입니다. SYN(`--scan-type syn`)은 Windows 관리자 토큰과 Npcap 파일을 검사하며, `--syn-fallback`을 명시한 경우에만 경고 후 Connect로 대체합니다. 드라이버가 실제로 작동하는지는 Naabu 실행 결과로 최종 판단합니다.
+포트 스캔은 도메인을 직접 넘기는 대신 해석된 IP를 고정해 전달하고, 결과에는 원래 호스트명을 연결합니다. `both`에서는 동일 실행 안에서 완료한 IP와 동일 조건의 포트 스캔을 재실행하지 않습니다. 마지막 단계는 유효한 호스트 중 새롭게 발견한 IP만 사용합니다. 포트 스캔 기본은 Connect(`-s c`)이며 Smart Scan(`-ss`)은 별도 옵션입니다. SYN(`--scan-type syn`)은 Windows 관리자 토큰과 Npcap 파일을 검사하며, `--syn-fallback`을 명시한 경우에만 경고 후 Connect로 대체합니다. 드라이버가 실제로 작동하는지는 Naabu 실행 결과로 최종 판단합니다.
 
 Katana는 입력 FQDN의 정규식과 제외 범위, `-fs fqdn`, 리다이렉트 비활성화를 사용합니다. Httpx도 리다이렉트 추적 옵션을 켜지 않습니다. Feroxbuster는 대상별 순차 실행, `--scan-limit 1`, 제한된 스레드·속도·깊이를 사용하며 링크 추출을 끄고 사전 기반 재귀 탐색을 수행합니다. 디렉터리별 rate limit이 합산되지 않도록 동시 디렉터리 스캔을 하나로 제한합니다. 기존 Feroxbuster 전역/실행 파일 옆 설정이 있으면 범위와 리다이렉트 정책이 섞일 수 있어 해당 단계를 중단합니다.
 
@@ -67,7 +65,6 @@ Katana는 입력 FQDN의 정규식과 제외 범위, `-fs fqdn`, 리다이렉트
 ```powershell
 $env:DISCOVERYX_MAX_TARGETS = '50'
 $env:DISCOVERYX_HTTP_TIMEOUT = '5s'
-$env:DISCOVERYX_APPROVED = '[api.example.net]'
 $env:DISCOVERYX_LIMITS = '{naabu: {rate: 10, concurrency: 2}}'
 .\discoveryx.exe -u example.com --katana-rate 10 --katana-concurrency 2
 ```
@@ -113,7 +110,7 @@ Feroxbuster는 여러 대상을 각각 `feroxbuster_0000.jsonl` 등의 파일에
 
 Ctrl+C는 context를 취소하며 Windows Job Object 또는 Unix 프로세스 그룹을 통해 자식 프로세스를 종료하고 상태와 결과를 저장합니다. Windows Job 할당이 불가능하면 격리 없이 계속하지 않습니다. 강제 전원 종료까지 저장을 보장할 수는 없으므로, 재개 시 상태뿐 아니라 체크포인트와 필수 원본 파일 해시를 검증합니다.
 
-`resume --run <디렉터리>`는 저장된 설정을 사용합니다. CLI로 다른 대상이나 범위를 덮어쓰지 않습니다. 도구 버전/바이너리, 사용한 사전·룰, 템플릿 트리가 달라졌으면 재개를 거부합니다. 검증된 연속 완료 단계는 재사용하고 첫 실패·건너뜀·손상 단계부터 이후 단계를 재실행합니다. 재시도 전 원본 파일은 `.previous-<시각>` 이름으로 보존합니다. 실행 시간 상한은 재개 전후의 활성 시간을 합산합니다.
+`resume --run <디렉터리>`는 저장된 설정을 사용합니다. CLI로 다른 대상이나 범위를 덮어쓰지 않습니다. 도구 버전/바이너리, 사용한 사전·룰, 템플릿 트리가 달라졌으면 재개를 거부합니다. 검증된 연속 완료 단계는 재사용하고 첫 실패·건너뜀·손상 단계부터 이후 단계를 재실행합니다. 재시도 전 원본 파일은 `.previous-<시각>` 이름으로 보존합니다. 실행 시간 상한은 재개 전후의 활성 시간을 합산합니다. 이전 버전의 Web-only 실행은 단계 구성이 달라 새 실행이 필요합니다. 기존 결과는 그대로 보존됩니다.
 
 ## 구조와 확장
 

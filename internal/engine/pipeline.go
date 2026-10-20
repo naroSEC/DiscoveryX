@@ -11,6 +11,7 @@ type Stage struct {
 func Plan(c config.Config) []Stage {
 	s := []Stage{}
 	if c.WebOnly {
+		s = append(s, Stage{Name: "httpx", Tool: "httpx"})
 		if c.Crawl == "on" {
 			s = append(s, Stage{Name: "katana", Tool: "katana"})
 		}

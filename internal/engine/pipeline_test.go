@@ -22,11 +22,11 @@ func TestPlans(t *testing.T) {
 	c.WebOnly = true
 	c.PortScan = "both"
 	p := Plan(c)
-	if len(p) != 3 || p[0].Name != "katana" || p[2].Name != "nuclei" {
+	if len(p) != 4 || p[0].Name != "httpx" || p[1].Name != "katana" || p[3].Name != "nuclei" {
 		t.Fatal(p)
 	}
 	c.Crawl = "off"
-	if len(Plan(c)) != 2 {
+	if len(Plan(c)) != 3 {
 		t.Fatal("web-only must honor disable flags")
 	}
 	c = config.Default()

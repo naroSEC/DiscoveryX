@@ -61,7 +61,7 @@ func TestInstalledScannersOnLoopback(t *testing.T) {
 	c.Wordlist = filepath.Join(dir, "fixture-wordlist.txt")
 	os.WriteFile(c.Wordlist, []byte("admin\n"), 0600)
 	c.TechRules, _ = filepath.Abs(c.TechRules)
-	v, _ := scope.New("127.0.0.1", nil, nil, nil)
+	v, _ := scope.New("127.0.0.1", nil)
 	hostfile := filepath.Join(dir, "inputs", "hosts.txt")
 	urlfile := filepath.Join(dir, "inputs", "urls.txt")
 	storage.Lines(hostfile, []string{server.URL})

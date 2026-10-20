@@ -19,9 +19,7 @@ crawl_depth: 3
 directory_depth: 3
 tags: cve,vuln,vkev,kev
 severity: medium,high,critical
-approved: []
 excluded: []
-approved_ips: []
 http_timeout: 10s
 stage_timeout: 30m
 max_duration: 2h

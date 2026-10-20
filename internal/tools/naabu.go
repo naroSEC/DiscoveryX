@@ -71,7 +71,7 @@ func Naabu() Tool {
 		return parser.JSONL(r, func(m map[string]any, _ int) {
 			h := parser.Str(m, "host")
 			ip := parser.Str(m, "ip")
-			if !in.Scope.PortIP(ip) {
+			if _, ok := in.PortHosts[ip]; !ok || !in.Scope.Contains(in.PortHosts[ip]) {
 				d.External = append(d.External, ip)
 				return
 			}

@@ -40,9 +40,7 @@ type Config struct {
 	DirectoryDepth int              `yaml:"directory_depth"`
 	Tags           string           `yaml:"tags"`
 	Severity       string           `yaml:"severity"`
-	Approved       []string         `yaml:"approved"`
 	Excluded       []string         `yaml:"excluded"`
-	ApprovedIPs    []string         `yaml:"approved_ips"`
 	HTTPTimeout    time.Duration    `yaml:"http_timeout"`
 	StageTimeout   time.Duration    `yaml:"stage_timeout"`
 	MaxDuration    time.Duration    `yaml:"max_duration"`
@@ -91,7 +89,7 @@ func Load(path string) (Config, error) {
 	return c, nil
 }
 func (c Config) Validate() error {
-	if _, e := scope.New(c.Target, c.Approved, c.Excluded, c.ApprovedIPs); e != nil {
+	if _, e := scope.New(c.Target, c.Excluded); e != nil {
 		return e
 	}
 	if !one(c.PortScan, "first", "last", "both", "off") {
