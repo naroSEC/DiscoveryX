@@ -86,7 +86,16 @@ func Feroxbuster() Tool {
 			if e = storage.Atomic(filepath.Join(work, "ferox-config.toml"), []byte("redirects = false\n")); e != nil {
 				return nil, e
 			}
-			a := []string{"-u", w.URL, "-x", strings.Join(ext, ","), "--depth", num(in.Config.DirectoryDepth), "-w", in.Config.Wordlist, "-s", "200", "301", "302", "--rate-limit", num(l.Rate), "-t", num(l.Concurrency), "--scan-limit", "1", "--timeout", timeout(in), "--no-state", "--json", "-o", p}
+			a := []string{"-u", w.URL, "-x", strings.Join(ext, ","), "--depth", num(in.Config.DirectoryDepth), "-w", in.Config.Wordlist, "-s", "200", "301", "302", "--timeout", timeout(in), "--no-state", "--json", "-o", p}
+			if l.Rate > 0 {
+				a = append(a, "--rate-limit", num(l.Rate))
+			}
+			if l.Concurrency > 0 {
+				a = append(a, "-t", num(l.Concurrency))
+			}
+			if in.Config.FeroxScanLimit > 0 {
+				a = append(a, "--scan-limit", num(in.Config.FeroxScanLimit))
+			}
 			if re := in.Scope.ExcludeRegex(); re != "" {
 				a = append(a, "--dont-scan", re)
 			}

@@ -88,7 +88,7 @@ discoveryx tools install
 discoveryx doctor
 ```
 
-디렉터리 탐색에 사용할 사전은 `wordlists/common.txt`에 직접 넣어 주세요. 다른 사전은 `--wordlist`로 지정할 수 있습니다. Nuclei 템플릿은 별도 명령으로 설치합니다.
+디렉터리 탐색에 사용할 사전은 `wordlists/common.txt`에 직접 넣어 주세요. 다른 사전은 `--wordlist`로 지정할 수 있습니다. Nuclei 템플릿은 첫 점검에서 관리 폴더가 비어 있으면 자동 설치합니다. 첫 설치에는 다운로드와 인덱스 생성 시간이 필요합니다. 미리 설치하거나 이후에 갱신하려면 다음 명령을 사용하세요.
 
 ```powershell
 discoveryx templates update
@@ -101,7 +101,7 @@ discoveryx -u example.com
 ```
 
 > [!NOTE]
-> 사전이나 템플릿이 없으면 해당 단계는 이유를 기록하고 건너뜁니다. 파일을 임의로 내려받거나 점검을 마친 것으로 표시하지 않습니다.
+> 사전은 직접 제공해야 합니다. Nuclei 템플릿의 최초 설치가 실패하면 원인과 재시도 명령을 표시하고 해당 단계를 실패로 남깁니다. `--template-auto-install=false`로 자동 최초 설치를 끌 수 있습니다.
 
 ## 사용 예제
 
@@ -162,6 +162,21 @@ discoveryx -u example.com -ps off `
   --crawl-depth 3 --max-targets 50 --max-duration 1h
 ```
 
+Feroxbuster와 Nuclei는 기본적으로 **설치된 도구의 속도·동시성 기본값**을 사용합니다. Feroxbuster의 `--rate-limit`, `-t`, `--scan-limit`과 Nuclei의 `-rl`, `-c`, `-bs`를 강제로 지정하지 않습니다. 필요하면 `--feroxbuster-rate`, `--feroxbuster-concurrency`, `--feroxbuster-scan-limit`, `--nuclei-rate`, `--nuclei-concurrency`로 조정하세요. 해당 설정의 `0`은 도구 기본값을 의미합니다.
+
+이전 설정 파일을 유지하고 있다면 아래 값을 바꾸거나 CLI에서 `0`으로 덮어써야 합니다. 기존 파일의 명시적인 제한은 그대로 적용됩니다.
+
+```yaml
+feroxbuster_scan_limit: 0
+template_auto_install: true
+limits:
+  # 다른 도구 항목은 기존 설정 유지
+  feroxbuster: {rate: 0, concurrency: 0}
+  nuclei: {rate: 0, concurrency: 0}
+```
+
+단계별 시간 제한은 기본 30분, 전체 실행 시간은 2시간입니다. 큰 사전을 사용해 시간이 더 필요하다면 `--stage-timeout 2h --max-duration 4h`처럼 조정하세요.
+
 속도와 동시성은 도구별로 조정할 수 있습니다. 디렉터리 탐색 확장자는 Httpx의 기술 탐지 결과와 [기술 매핑 규칙](configs/tech-extensions.yaml)을 조합해 정합니다. 예를 들어 PHP가 탐지되면 기본 확장자에 `php`를 추가하고, IIS만 탐지된 경우에는 ASP.NET으로 단정하지 않습니다.
 
 전체 옵션은 `discoveryx.exe --help`, 세부 동작은 [사용 가이드](docs/usage.md)에서 확인할 수 있습니다.
@@ -188,7 +203,7 @@ discoveryx templates update
 - **개요:** 주요 발견 건수, 심각도 분포, 단계별 진행 상태를 한 화면에 표시합니다.
 - **결과 탐색:** 자산·포트·웹 서비스·URL·디렉터리·탐지 결과를 나눠 봅니다. 검색, 호스트·심각도 필터, 정렬과 페이지 이동을 지원합니다.
 - **상세 확인:** 개별 레코드의 JSON과 원본 근거를 확인하고, 현재 필터에 맞는 결과를 JSON으로 내보낼 수 있습니다. 탐지 결과의 중복 표시도 전환할 수 있습니다.
-- **명령어 기록:** DiscoveryX 실행 명령과 각 스캔 단계에서 호출한 도구의 경로·인자·실행 시간·상태를 표시합니다. 사전 점검과 템플릿 목록 조회는 따로 구분하고, 명령어 복사와 stdout/stderr 로그 확인을 제공합니다.
+- **명령어 기록:** DiscoveryX 실행 명령과 각 스캔 단계에서 호출한 도구의 경로·인자·실행 시간·상태를 표시합니다. 사전 점검과 템플릿 설치·목록 조회는 따로 구분하고, 명령어 복사와 stdout/stderr 로그 확인을 제공합니다.
 
 이미 저장한 실행 결과에서도 리포트만 다시 만들 수 있습니다. 이 명령은 스캐너를 실행하지 않습니다.
 

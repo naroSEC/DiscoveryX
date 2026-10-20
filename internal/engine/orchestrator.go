@@ -453,7 +453,36 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 			files = append(files, dest)
 		}
 	}
+	installation, er := e.Manager.Ensure(ctx, s.Tool, false)
+	if er != nil {
+		return 0, files, "", er
+	}
+	e.Meta.Tools[s.Tool] = installation
+	if err = e.save(); err != nil {
+		return
+	}
+	if err = t.Validate(ctx, executor, installation.Path); err != nil {
+		return
+	}
+	helpFlag := "-h"
+	if s.Tool == "feroxbuster" {
+		helpFlag = "--help"
+	}
+	in.Help, err = runner.Probe(ctx, executor, installation.Path, helpFlag)
+	if err != nil {
+		return
+	}
 	if s.Tool == "nuclei" {
+		if e.Config.TemplateAutoInstall {
+			fmt.Fprintln(e.log, "nuclei templates: checking local tree; missing templates will be installed")
+			installed, installErr := tools.InstallMissingTemplates(ctx, executor, installation.Path, e.Config.TemplatesDir)
+			if installErr != nil {
+				return 0, files, "", installErr
+			}
+			if installed {
+				fmt.Fprintf(e.log, "nuclei templates: initial installation completed in %s\n", e.Config.TemplatesDir)
+			}
+		}
 		var report tools.FilterReport
 		in.TemplatePaths, report, err = tools.SelectedTemplates(in)
 		reportPath := filepath.Join(e.Dir, "inputs", "template-filters.json")
@@ -481,25 +510,7 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		e.Meta.TemplateVersion = in.TemplateVersion
 		files = append(files, in.TemplatePaths...)
 	}
-	installation, er := e.Manager.Ensure(ctx, s.Tool, false)
-	if er != nil {
-		return 0, files, "", er
-	}
-	e.Meta.Tools[s.Tool] = installation
-	if err = e.save(); err != nil {
-		return
-	}
-	if err = t.Validate(ctx, executor, installation.Path); err != nil {
-		return
-	}
-	helpFlag := "-h"
-	if s.Tool == "feroxbuster" {
-		helpFlag = "--help"
-	}
-	in.Help, err = runner.Probe(ctx, executor, installation.Path, helpFlag)
-	if err != nil {
-		return
-	}
+
 	calls, er := t.BuildArgs(in)
 	if er != nil {
 		return 0, files, "", er

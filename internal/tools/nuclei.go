@@ -27,7 +27,13 @@ func Nuclei() Tool {
 		}
 		l := in.Config.Limits["nuclei"]
 		a = append(a, "-nc")
-		a = append(a, "-l", in.URLsFile, "-t", list, "-ud", in.Config.TemplatesDir, "-tags", in.Config.Tags, "-s", in.Config.Severity, "-pt", "http", "-etags", "dos,fuzz,fuzzing,headless,code,oast,unsafe", "-ni", "-dr", "-dut", "-rl", num(l.Rate), "-c", num(l.Concurrency), "-bs", "1", "-timeout", timeout(in), "-j", "-o", p)
+		a = append(a, "-l", in.URLsFile, "-t", list, "-ud", in.Config.TemplatesDir, "-tags", in.Config.Tags, "-s", in.Config.Severity, "-pt", "http", "-etags", "dos,fuzz,fuzzing,headless,code,oast,unsafe", "-ni", "-dr", "-dut", "-timeout", timeout(in), "-j", "-o", p)
+		if l.Rate > 0 {
+			a = append(a, "-rl", num(l.Rate))
+		}
+		if l.Concurrency > 0 {
+			a = append(a, "-c", num(l.Concurrency))
+		}
 		return []Invocation{{a, p}}, nil
 	}, parse: func(r io.Reader, d *model.Data, in Input) []string {
 		return parser.JSONL(r, func(m map[string]any, line int) {

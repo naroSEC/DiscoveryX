@@ -77,7 +77,7 @@ func main() {
 		}
 		dir := arg("-ud")
 		os.MkdirAll(dir, 0700)
-		os.WriteFile(filepath.Join(dir, "fixture.yaml"), []byte("id: fixture\ninfo:\n  name: fixture\n  severity: high\n  tags: cve,kev\nhttp:\n  - method: GET\n    path: ['{{BaseURL}}/test']\n    matchers:\n      - type: status\n        status: [200]\n"), 0600)
+		os.WriteFile(filepath.Join(dir, "fixture.yaml"), []byte("id: fixture\ninfo:\n  name: fixture\n  severity: high\n  tags: cve,kev\nhttp:\n  - method: GET\n    path: ['{{BaseURL}}/test']\n    matchers:\n      - type: status\n        status: [200]\n# digest: 00:00\n"), 0600)
 		return
 	}
 	if has("-tv") {

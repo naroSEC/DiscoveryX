@@ -84,3 +84,5 @@
 - `internal/reporting/page.html`
 - `internal/reporting/report.css`
 - `internal/reporting/report.js`
+
+- `internal/engine/template_install_test.go`

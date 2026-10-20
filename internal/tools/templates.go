@@ -65,6 +65,44 @@ func Tree(dir string) (string, int, error) {
 	}
 	return hex.EncodeToString(h.Sum(nil)), count, nil
 }
+
+// InstallMissingTemplates bootstraps an absent or empty tree without refreshing
+// an existing installation. The caller holds the template management lock.
+func InstallMissingTemplates(ctx context.Context, e runner.Executor, exe, dir string) (bool, error) {
+	info, err := os.Stat(dir)
+	if err != nil && !os.IsNotExist(err) {
+		return false, fmt.Errorf("inspect template directory: %w", err)
+	}
+	if err == nil {
+		if !info.IsDir() {
+			return false, fmt.Errorf("template path is not a directory: %s", dir)
+		}
+		// Only check presence here. SelectedTemplates validates and hashes the
+		// complete tree later; avoid reading thousands of files twice.
+		found := false
+		err = filepath.WalkDir(dir, func(_ string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
+			}
+			if !d.IsDir() && strings.HasSuffix(d.Name(), ".yaml") {
+				found = true
+				return fs.SkipAll
+			}
+			return nil
+		})
+		if err != nil {
+			return false, fmt.Errorf("inspect template directory: %w", err)
+		}
+		if found {
+			return false, nil
+		}
+	}
+	if _, err = UpdateTemplates(ctx, e, exe, dir); err != nil {
+		return false, fmt.Errorf("initial template installation failed; retry discoveryx templates update: %w", err)
+	}
+	return true, nil
+}
+
 func UpdateTemplates(ctx context.Context, e runner.Executor, exe, dir string) (TemplateState, error) {
 	// Update into a staging directory; keep the previous template tree on failure.
 	parent := filepath.Dir(dir)
@@ -138,9 +176,12 @@ func SelectedTemplates(in Input) ([]string, FilterReport, error) {
 		report.Tags[strings.TrimSpace(strings.ToLower(t))] = 0
 		report.EligibleByTag[strings.TrimSpace(strings.ToLower(t))] = 0
 	}
-	hash, _, err := Tree(in.Config.TemplatesDir)
+	hash, count, err := Tree(in.Config.TemplatesDir)
 	if err != nil {
 		return nil, report, fmt.Errorf("templates absent; run discoveryx templates update: %w", err)
+	}
+	if count == 0 {
+		return nil, report, fmt.Errorf("template directory contains no YAML templates; run discoveryx templates update")
 	}
 	report.TreeSHA256 = hash
 	var paths []string

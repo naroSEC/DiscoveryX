@@ -33,13 +33,36 @@ func TestValidation(t *testing.T) {
 	}
 }
 
+func TestNativeScannerLimits(t *testing.T) {
+	c := Default()
+	c.Target = "fixture.test"
+	if !c.TemplateAutoInstall || c.Validate() != nil {
+		t.Fatal("native defaults rejected")
+	}
+	for _, name := range []string{"feroxbuster", "nuclei"} {
+		c.Limits[name] = Limit{Rate: 1000, Concurrency: 200}
+		if err := c.Validate(); err != nil {
+			t.Fatal(err)
+		}
+		c.Limits[name] = Limit{Rate: -1, Concurrency: 0}
+		if c.Validate() == nil {
+			t.Fatal("negative limit accepted")
+		}
+		c.Limits[name] = Limit{}
+	}
+	c.FeroxScanLimit = -1
+	if c.Validate() == nil {
+		t.Fatal("negative directory concurrency accepted")
+	}
+}
+
 func TestBundledDefaultsOutsideSourceCheckout(t *testing.T) {
 	t.Chdir(t.TempDir())
 	c, e := Load("")
 	if e != nil {
 		t.Fatal(e)
 	}
-	if c.TechRules != BuiltinTechRules || c.Limits["feroxbuster"].Rate != 10 {
+	if c.TechRules != BuiltinTechRules || c.Limits["feroxbuster"].Rate != 0 {
 		t.Fatal(c)
 	}
 	if e = c.Absolute(); e != nil {

@@ -25,7 +25,7 @@ func (r Recorder) Run(ctx context.Context, req Request) error {
 			purpose = "scan"
 			break
 		}
-		if arg == "-tl" {
+		if arg == "-tl" || arg == "-ut" {
 			purpose = "templates"
 		}
 	}

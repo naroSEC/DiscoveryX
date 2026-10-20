@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-var Version = "0.2.0"
+var Version = "0.3.0"
 
 func Normalize(args []string) []string {
 	out := append([]string{}, args...)
@@ -120,6 +120,8 @@ func bind(f *pflag.FlagSet, c *config.Config, path *string) {
 	f.StringSliceVar(&c.Extensions, "extensions", c.Extensions, "Additional directory extensions")
 	f.IntVar(&c.CrawlDepth, "crawl-depth", c.CrawlDepth, "Crawl depth")
 	f.IntVar(&c.DirectoryDepth, "dir-depth", c.DirectoryDepth, "Directory depth")
+	f.IntVar(&c.FeroxScanLimit, "feroxbuster-scan-limit", c.FeroxScanLimit, "Concurrent directory scans (0 uses Feroxbuster default)")
+	f.BoolVar(&c.TemplateAutoInstall, "template-auto-install", c.TemplateAutoInstall, "Install Nuclei templates only when missing; never auto-update existing templates")
 	f.StringVar(&c.Tags, "nuclei-tags", c.Tags, "Nuclei template tags")
 	f.StringVar(&c.Severity, "nuclei-severity", c.Severity, "Nuclei severities")
 	f.StringVar(&c.LogLevel, "log-level", c.LogLevel, "info/error/debug (full logs are always saved)")
@@ -131,11 +133,18 @@ func bind(f *pflag.FlagSet, c *config.Config, path *string) {
 	for _, name := range updater.Names {
 		n := name
 		l := c.Limits[n]
-		f.IntVar(&l.Rate, n+"-rate", l.Rate, "Requests/packets per second for "+n)
-		f.IntVar(&l.Concurrency, n+"-concurrency", l.Concurrency, "Bounded workers for "+n)
+		f.IntVar(&l.Rate, n+"-rate", l.Rate, "Requests/packets per second for "+n+limitDefaultHint(n))
+		f.IntVar(&l.Concurrency, n+"-concurrency", l.Concurrency, "Workers for "+n+limitDefaultHint(n))
 		f.Lookup(n + "-rate").Value = &limitValue{c: c, name: n, rate: true, fallback: l.Rate}
 		f.Lookup(n + "-concurrency").Value = &limitValue{c: c, name: n, fallback: l.Concurrency}
 	}
+}
+
+func limitDefaultHint(name string) string {
+	if name == "feroxbuster" || name == "nuclei" {
+		return " (0 uses tool default)"
+	}
+	return ""
 }
 
 type limitValue struct {

@@ -2,12 +2,14 @@ package tools
 
 import (
 	"context"
+	"fmt"
 	"github.com/naroSEC/DiscoveryX/internal/config"
 	"github.com/naroSEC/DiscoveryX/internal/runner"
 	"github.com/naroSEC/DiscoveryX/internal/storage"
 	"github.com/naroSEC/DiscoveryX/internal/testutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -69,5 +71,49 @@ func TestLoadedTemplateCount(t *testing.T) {
 		if n != tc.n || known != tc.known {
 			t.Fatalf("%q => %d %t", tc.log, n, known)
 		}
+	}
+}
+
+func TestInitialTemplateInstallAndReuse(t *testing.T) {
+	for _, emptyDir := range []bool{false, true} {
+		t.Run(fmt.Sprint("existing-directory-", emptyDir), func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "templates")
+			if emptyDir {
+				if err := os.MkdirAll(dir, 0700); err != nil {
+					t.Fatal(err)
+				}
+			}
+			exe := testutil.Binary(t)
+			installed, err := InstallMissingTemplates(context.Background(), runner.OSExecutor{}, exe, dir)
+			if err != nil || !installed {
+				t.Fatalf("%t %v", installed, err)
+			}
+			before, count, err := Tree(dir)
+			if err != nil || count == 0 {
+				t.Fatal(err, count)
+			}
+			// Any update attempt now fails, so reuse must not call the updater.
+			t.Setenv("MOCK_UPDATE_FAIL", "1")
+			installed, err = InstallMissingTemplates(context.Background(), runner.OSExecutor{}, exe, dir)
+			if err != nil || installed {
+				t.Fatalf("existing templates were updated: %t %v", installed, err)
+			}
+			after, _, _ := Tree(dir)
+			if before != after {
+				t.Fatal("existing template tree changed")
+			}
+		})
+	}
+}
+
+func TestInitialTemplateInstallFailure(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "templates")
+	t.Setenv("MOCK_UPDATE_FAIL", "1")
+	installed, err := InstallMissingTemplates(context.Background(), runner.OSExecutor{}, testutil.Binary(t), dir)
+	if installed || err == nil || !strings.Contains(err.Error(), "discoveryx templates update") {
+		t.Fatalf("failed installation reported as success: %t %v", installed, err)
+	}
+	if _, err = os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatal("failed candidate was installed", err)
 	}
 }

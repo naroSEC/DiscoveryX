@@ -28,45 +28,49 @@ type Limit struct {
 	Concurrency int `yaml:"concurrency"`
 }
 type Config struct {
-	Target         string           `yaml:"target"`
-	Output         string           `yaml:"output"`
-	ToolsDir       string           `yaml:"tools_dir"`
-	TemplatesDir   string           `yaml:"templates_dir"`
-	PortScan       string           `yaml:"port_scan"`
-	Subfinder      string           `yaml:"subfinder"`
-	Crawl          string           `yaml:"crawl"`
-	Directory      string           `yaml:"directory"`
-	Nuclei         string           `yaml:"nuclei"`
-	WebOnly        bool             `yaml:"web_only"`
-	ScanType       string           `yaml:"scan_type"`
-	SYNFallback    bool             `yaml:"syn_fallback"`
-	SmartScan      bool             `yaml:"smart_scan"`
-	ServiceVersion bool             `yaml:"service_version"`
-	Probes         string           `yaml:"probes"`
-	Ports          string           `yaml:"ports"`
-	Wordlist       string           `yaml:"wordlist"`
-	TechRules      string           `yaml:"tech_rules"`
-	Extensions     []string         `yaml:"extensions"`
-	CrawlDepth     int              `yaml:"crawl_depth"`
-	DirectoryDepth int              `yaml:"directory_depth"`
-	Tags           string           `yaml:"tags"`
-	Severity       string           `yaml:"severity"`
-	Excluded       []string         `yaml:"excluded"`
-	HTTPTimeout    time.Duration    `yaml:"http_timeout"`
-	StageTimeout   time.Duration    `yaml:"stage_timeout"`
-	MaxDuration    time.Duration    `yaml:"max_duration"`
-	MaxTargets     int              `yaml:"max_targets"`
-	Limits         map[string]Limit `yaml:"limits"`
-	LogLevel       string           `yaml:"log_level"`
+	FeroxScanLimit      int              `yaml:"feroxbuster_scan_limit"`
+	TemplateAutoInstall bool             `yaml:"template_auto_install"`
+	Target              string           `yaml:"target"`
+	Output              string           `yaml:"output"`
+	ToolsDir            string           `yaml:"tools_dir"`
+	TemplatesDir        string           `yaml:"templates_dir"`
+	PortScan            string           `yaml:"port_scan"`
+	Subfinder           string           `yaml:"subfinder"`
+	Crawl               string           `yaml:"crawl"`
+	Directory           string           `yaml:"directory"`
+	Nuclei              string           `yaml:"nuclei"`
+	WebOnly             bool             `yaml:"web_only"`
+	ScanType            string           `yaml:"scan_type"`
+	SYNFallback         bool             `yaml:"syn_fallback"`
+	SmartScan           bool             `yaml:"smart_scan"`
+	ServiceVersion      bool             `yaml:"service_version"`
+	Probes              string           `yaml:"probes"`
+	Ports               string           `yaml:"ports"`
+	Wordlist            string           `yaml:"wordlist"`
+	TechRules           string           `yaml:"tech_rules"`
+	Extensions          []string         `yaml:"extensions"`
+	CrawlDepth          int              `yaml:"crawl_depth"`
+	DirectoryDepth      int              `yaml:"directory_depth"`
+	Tags                string           `yaml:"tags"`
+	Severity            string           `yaml:"severity"`
+	Excluded            []string         `yaml:"excluded"`
+	HTTPTimeout         time.Duration    `yaml:"http_timeout"`
+	StageTimeout        time.Duration    `yaml:"stage_timeout"`
+	MaxDuration         time.Duration    `yaml:"max_duration"`
+	MaxTargets          int              `yaml:"max_targets"`
+	Limits              map[string]Limit `yaml:"limits"`
+	LogLevel            string           `yaml:"log_level"`
 }
 
 func Default() Config {
 	base, _ := os.UserCacheDir()
 	base = filepath.Join(base, "discoveryx")
-	c := Config{Output: "runs", ToolsDir: filepath.Join(base, "tools"), TemplatesDir: filepath.Join(base, "templates"), PortScan: "first", Subfinder: "on", Crawl: "on", Directory: "on", Nuclei: "on", ScanType: "connect", ServiceVersion: true, Ports: "top-1000", Wordlist: "wordlists/common.txt", TechRules: BuiltinTechRules, CrawlDepth: 3, DirectoryDepth: 3, Tags: "cve,vuln,vkev,kev", Severity: "medium,high,critical", HTTPTimeout: 10 * time.Second, StageTimeout: 30 * time.Minute, MaxDuration: 2 * time.Hour, MaxTargets: 100, LogLevel: "info", Limits: map[string]Limit{}}
+	c := Config{TemplateAutoInstall: true, Output: "runs", ToolsDir: filepath.Join(base, "tools"), TemplatesDir: filepath.Join(base, "templates"), PortScan: "first", Subfinder: "on", Crawl: "on", Directory: "on", Nuclei: "on", ScanType: "connect", ServiceVersion: true, Ports: "top-1000", Wordlist: "wordlists/common.txt", TechRules: BuiltinTechRules, CrawlDepth: 3, DirectoryDepth: 3, Tags: "cve,vuln,vkev,kev", Severity: "medium,high,critical", HTTPTimeout: 10 * time.Second, StageTimeout: 30 * time.Minute, MaxDuration: 2 * time.Hour, MaxTargets: 100, LogLevel: "info", Limits: map[string]Limit{}}
 	for _, n := range []string{"naabu", "subfinder", "dnsx", "httpx", "katana", "feroxbuster", "nuclei"} {
 		c.Limits[n] = Limit{Rate: 20, Concurrency: 5}
 	}
+	c.Limits["feroxbuster"] = Limit{}
+	c.Limits["nuclei"] = Limit{}
 	return c
 }
 func Load(path string) (Config, error) {
@@ -128,9 +132,16 @@ func (c Config) Validate() error {
 	}
 	for _, n := range []string{"naabu", "subfinder", "dnsx", "httpx", "katana", "feroxbuster", "nuclei"} {
 		l, ok := c.Limits[n]
-		if !ok || l.Rate < 1 || l.Concurrency < 1 || l.Concurrency > 100 {
+		if n == "feroxbuster" || n == "nuclei" {
+			if !ok || l.Rate < 0 || l.Concurrency < 0 {
+				return fmt.Errorf("%s rate/concurrency must be >=0 (0 uses tool defaults)", n)
+			}
+		} else if !ok || l.Rate < 1 || l.Concurrency < 1 || l.Concurrency > 100 {
 			return fmt.Errorf("%s needs positive rate/concurrency (concurrency <=100)", n)
 		}
+	}
+	if c.FeroxScanLimit < 0 {
+		return fmt.Errorf("feroxbuster_scan_limit must be >=0 (0 uses tool default)")
 	}
 	for _, s := range strings.Split(c.Severity, ",") {
 		if !one(s, "info", "low", "medium", "high", "critical", "unknown") {

@@ -17,6 +17,10 @@ tech_rules: configs/tech-extensions.yaml
 extensions: []
 crawl_depth: 3
 directory_depth: 3
+# 0 omits the corresponding flag and uses the installed tool default.
+feroxbuster_scan_limit: 0
+# Install missing Nuclei templates once; existing templates are never auto-updated.
+template_auto_install: true
 tags: cve,vuln,vkev,kev
 severity: medium,high,critical
 excluded: []
@@ -31,5 +35,5 @@ limits:
   dnsx: {rate: 20, concurrency: 5}
   httpx: {rate: 20, concurrency: 5}
   katana: {rate: 20, concurrency: 5}
-  feroxbuster: {rate: 10, concurrency: 5}
-  nuclei: {rate: 20, concurrency: 5}
+  feroxbuster: {rate: 0, concurrency: 0}
+  nuclei: {rate: 0, concurrency: 0}

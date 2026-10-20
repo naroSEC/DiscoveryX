@@ -28,7 +28,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 필요한 도구가 없으면 해당 단계에서 공식 GitHub Releases 자산을 설치합니다. 기본 위치는 `%LOCALAPPDATA%\discoveryx\tools`이며 템플릿은 인접한 `templates` 디렉터리에서 관리합니다. Linux에서는 `os.UserCacheDir()` 아래를 사용합니다. `--tools-dir`, `--templates-dir`로 바꿀 수 있습니다. PATH의 동명 실행 파일을 임의로 선택하지 않으며, 정상적인 Manifest와 바이너리 해시가 있으면 재다운로드하지 않습니다.
 
-디렉터리 탐색을 사용하려면 **사용자가 직접** `wordlists/common.txt`를 배치하세요. DiscoveryX는 사전을 생성하거나 다운로드하지 않습니다. 템플릿도 다음 명령으로 명시적으로 설치해야 합니다.
+디렉터리 탐색을 사용하려면 **사용자가 직접** `wordlists/common.txt`를 배치하세요. DiscoveryX는 사전을 생성하거나 다운로드하지 않습니다. Nuclei 템플릿은 없거나 YAML 파일이 하나도 없으면 최초 점검 전에 자동 설치합니다. 기존 템플릿이 있으면 다운로드나 업데이트를 하지 않습니다. 미리 설치하거나 갱신하려면 다음 명령을 사용하세요.
 
 ```powershell
 .\discoveryx.exe templates update
@@ -63,9 +63,9 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 포트 스캔은 도메인을 직접 넘기는 대신 해석된 IP를 고정해 전달하고, 결과에는 원래 호스트명을 연결합니다. `both`에서는 동일 실행 안에서 완료한 IP와 동일 조건의 포트 스캔을 재실행하지 않습니다. 마지막 단계는 유효한 호스트 중 새롭게 발견한 IP만 사용합니다. 포트 스캔 기본은 Connect(`-s c`)이며 Smart Scan(`-ss`)은 별도 옵션입니다. SYN(`--scan-type syn`)은 Windows 관리자 토큰과 Npcap 파일을 검사하며, `--syn-fallback`을 명시한 경우에만 경고 후 Connect로 대체합니다. 드라이버가 실제로 작동하는지는 Naabu 실행 결과로 최종 판단합니다.
 
-Katana는 입력 FQDN의 정규식과 제외 범위, `-fs fqdn`, 리다이렉트 비활성화를 사용합니다. Httpx도 리다이렉트 추적 옵션을 켜지 않습니다. Feroxbuster는 대상별 순차 실행, `--scan-limit 1`, 제한된 스레드·속도·깊이를 사용하며 링크 추출을 끄고 사전 기반 재귀 탐색을 수행합니다. 디렉터리별 rate limit이 합산되지 않도록 동시 디렉터리 스캔을 하나로 제한합니다. 기존 Feroxbuster 전역/실행 파일 옆 설정이 있으면 범위와 리다이렉트 정책이 섞일 수 있어 해당 단계를 중단합니다.
+Katana는 입력 FQDN의 정규식과 제외 범위, `-fs fqdn`, 리다이렉트 비활성화를 사용합니다. Httpx도 리다이렉트 추적 옵션을 켜지 않습니다. Feroxbuster는 대상별 순차 실행과 깊이 제한을 유지하고, 링크 추출을 끄고 사전 기반 재귀 탐색을 수행합니다. 요청률·스레드·동시 디렉터리 수는 설치된 도구의 기본값을 사용합니다. 필요하면 `--feroxbuster-rate`, `--feroxbuster-concurrency`, `--feroxbuster-scan-limit`로 지정할 수 있습니다. 기존 Feroxbuster 전역/실행 파일 옆 설정이 있으면 범위와 리다이렉트 정책이 섞일 수 있어 해당 단계를 중단합니다.
 
-하나의 DiscoveryX 실행에서 한 번에 하나의 스캐너 프로세스만 실행합니다. 단계별 전역 요청률이 호스트별 요청률의 상한도 제한합니다. 대상 목록 기본 상한은 100개입니다. 실행 디렉터리·도구 디렉터리·템플릿 관리에는 OS 파일 잠금을 사용하므로 동일 도구 경로의 스캔 중 업데이트를 막고, 프로세스가 종료되면 재시작 후에도 잠금이 자동 해제됩니다.
+하나의 DiscoveryX 실행에서 한 번에 하나의 스캐너 프로세스만 실행합니다. 요청률과 동시성은 도구별 설정을 사용합니다. Feroxbuster의 rate limit은 디렉터리별로 적용되므로 동시 디렉터리 수에 따라 전체 요청률이 달라집니다. 대상 목록 기본 상한은 100개입니다. 실행 디렉터리·도구 디렉터리·템플릿 관리에는 OS 파일 잠금을 사용하므로 동일 도구 경로의 스캔 중 업데이트를 막고, 프로세스가 종료되면 재시작 후에도 잠금이 자동 해제됩니다.
 
 ## 설정
 
@@ -80,9 +80,13 @@ $env:DISCOVERYX_LIMITS = '{naabu: {rate: 10, concurrency: 2}}'
 .\discoveryx.exe -u example.com --katana-rate 10 --katana-concurrency 2
 ```
 
-`DISCOVERYX_LIMITS`는 맵 전체를 대체하므로 사용할 때 7개 도구 항목을 모두 지정해야 합니다. 일부 값만 바꾸려면 YAML 또는 도구별 CLI 옵션을 권장합니다. 0/음수 속도·시간·깊이, 누락된 도구 제한, 잘못된 범위와 포트는 스캔 전에 거부합니다. 동시성은 도구별 최대 100입니다.
+`DISCOVERYX_LIMITS`는 맵 전체를 대체하므로 사용할 때 7개 도구 항목을 모두 지정해야 합니다. 일부 값만 바꾸려면 YAML 또는 도구별 CLI 옵션을 권장합니다. 음수 속도, 0/음수 시간·깊이, 누락된 도구 제한, 잘못된 범위와 포트는 스캔 전에 거부합니다. Feroxbuster·Nuclei의 rate/concurrency는 0이면 해당 인자를 생략해 도구 기본값을 사용하며, 양수면 그대로 전달합니다. 다른 도구는 양수 속도와 1–100의 동시성을 사용합니다.
 
 주요 CLI 설정은 `--ports`, `--scan-type`, `--smart-scan`, `--service-version=false`, `--probes`, `--http-timeout`, `--stage-timeout`, `--max-duration`, `--max-targets`, `--crawl-depth`, `--dir-depth`, `--extensions`, `--nuclei-tags`, `--nuclei-severity`, `--log-level`입니다. 모든 도구에 `--<도구>-rate`, `--<도구>-concurrency`가 있습니다. Subfinder는 수동 수집 모드이므로 동시성 설정은 DNS 해석 작업을 하는 Dnsx에 적용되며 Subfinder 자체에는 요청률만 전달합니다.
+
+Feroxbuster·Nuclei의 기본 rate/concurrency와 `feroxbuster_scan_limit`은 0입니다. 이는 무조건 무제한 인자를 전달한다는 뜻이 아니라 해당 옵션을 생략한다는 뜻입니다. Nuclei에 강제하던 `-bs 1`도 제거했습니다. 확인한 Windows 릴리스 기준 Feroxbuster 2.13.1은 스레드 50, 요청률·동시 디렉터리 상한 없음이고, Nuclei 3.11.1은 초당 요청 150·동시 템플릿 25·템플릿별 동시 호스트 25입니다. 실제 기본값은 설치된 버전의 도움말을 기준으로 합니다.
+
+기존 YAML에 양수 제한이 남아 있으면 그 값이 계속 우선합니다. CLI에서 `--feroxbuster-rate 0 --feroxbuster-concurrency 0 --feroxbuster-scan-limit 0 --nuclei-rate 0 --nuclei-concurrency 0`을 지정하면 도구 기본값으로 되돌릴 수 있습니다. 단계당 30분·전체 2시간의 시간 제한은 별개이며 `--stage-timeout`, `--max-duration`으로 늘릴 수 있습니다. 재개는 저장된 설정을 유지하므로 변경한 속도·동시성 설정을 적용하려면 새 실행을 시작하세요.
 
 기술별 확장자는 `configs/tech-extensions.yaml`에 대소문자 무시 정규식으로 관리합니다. 기본 `xml,txt,html`에 PHP→php, Java/JSP→jsp, ASP/ASP.NET→asp/aspx를 추가합니다. 중복과 대문자를 정리하며 IIS만으로 ASP.NET을 추정하지 않습니다. 기술 탐지는 휴리스틱입니다.
 
@@ -101,7 +105,7 @@ $env:DISCOVERYX_LIMITS = '{naabu: {rate: 10, concurrency: 2}}'
 
 ZIP/tar.gz 내부 경로의 절대 경로·상위 탈출·Windows 드라이브·역슬래시 경로를 거부하고, 필요한 일반 실행 파일만 제한된 크기로 읽습니다. 후보는 버전/도움말과 릴리스 태그를 확인한 뒤 해시별 새 경로에 설치하고 Manifest를 전환합니다. 다운로드·검증·Manifest 저장 실패 시 이전 실행 파일과 Manifest를 유지합니다. Windows에서 사용 중인 실행 파일을 덮어쓰지 않습니다. 이전 실행 파일과 템플릿 백업은 복구를 위해 보존하며 자동 정리하지 않습니다.
 
-ProjectDiscovery 도구는 설치된 버전의 도움말에 `-duc`가 있어야 하며 실행 시 전달합니다. 자체 엔진 업데이트 인자와 Feroxbuster `-U/--update`는 사용하지 않습니다. 템플릿 업데이트는 **오직** `templates update`에서 `nuclei -ut -ud <임시 경로>`로 수행합니다. 기존 템플릿과 분리해 갱신하고 성공·트리 해시·실제 버전 출력을 기록한 뒤 관리 경로를 전환합니다. 실패하면 기존 트리를 유지합니다. `tools update`는 템플릿을 갱신하지 않습니다.
+ProjectDiscovery 도구는 설치된 버전의 도움말에 `-duc`가 있어야 하며 실행 시 전달합니다. 자체 엔진 업데이트 인자와 Feroxbuster `-U/--update`는 사용하지 않습니다. 기존 템플릿의 업데이트는 `templates update`에서 `nuclei -ut -ud <임시 경로>`로 수행합니다. 일반 스캔에서는 `template_auto_install: true`인 경우에만 비어 있거나 없는 관리 폴더에 최초 설치합니다. `--template-auto-install=false`로 끌 수 있으며, 이미 YAML 템플릿이 있으면 재설치하거나 갱신하지 않습니다. 최초 설치 실패는 단계 실패로 기록하고 `discoveryx templates update` 재시도를 안내합니다. 기존 템플릿과 분리해 갱신하고 성공·트리 해시·실제 버전 출력을 기록한 뒤 관리 경로를 전환합니다. 실패하면 기존 트리를 유지합니다. `tools update`는 템플릿을 갱신하지 않습니다.
 
 Nuclei 스캔은 설치된 템플릿을 로컬에서 필터링하고 복사본을 사용합니다. 태그별 설치 수·정책을 통과한 수·엔진 후보 목록 수와 실제로 로드한 서명 템플릿 수를 `inputs/template-filters.json`에 기록합니다. 고정된 BaseURL/RootURL 경로를 사용하는 서명된 HTTP GET/HEAD 템플릿만 허용합니다. raw 요청, payloads, DSL, flow, 외부 고정 URL, 코드, headless, OAST, fuzz/DoS 관련 태그는 거부합니다. `-dut`, `-pt http`, `-ni`, `-dr`, `-duc`를 적용하고 엔진 `-tl`로 후보 목록을 확인하고, 실행 로그에서 실제 로드한 서명 템플릿 수를 별도로 검증합니다. `-tl` 목록만으로 서명 유효성을 판단하지 않으며, 실제 로드 수가 0이거나 확인할 수 없으면 성공으로 표시하지 않습니다. 이 보수적인 정책은 전체 공식 CVE 템플릿보다 점검 범위를 줄입니다. 자동으로 공격적인 기능을 활성화하지 않습니다. 결과는 확정 취약점이 아닌 검토가 필요한 탐지 이벤트입니다.
 
@@ -125,7 +129,7 @@ Nuclei 스캔은 설치된 템플릿을 로컬에서 필터링하고 복사본�
 
 검색과 호스트 필터, 탐지 결과의 심각도·중복 필터, 포트 스캔 시점 필터를 지원합니다. 표 머리글로 정렬하고 페이지당 표시 건수를 바꿀 수 있습니다. 레코드의 상세 버튼은 원본 JSON과 근거 경로를 보여 줍니다. JSON 내보내기는 현재 화면에서 필터링한 전체 레코드를 저장합니다. 개요 화면에서는 리포트 전체 데이터를 내보냅니다.
 
-명령어 화면은 스캐너 실행과 사전 점검·템플릿 목록 조회를 구분합니다. 실제 실행 파일 경로와 인자를 기록하고, 표시할 때 Windows에서는 PowerShell 형식으로 인용합니다. 복사한 명령을 자동 실행하지는 않습니다. 실행 상태와 소요 시간, 도구 버전, stdout/stderr 로그도 확인할 수 있습니다. 기록은 `status.json`에도 보존되어 재개 시 기존 이력에 이어집니다.
+명령어 화면은 스캐너 실행과 사전 점검·템플릿 관리를 구분합니다. 실제 실행 파일 경로와 인자를 기록하고, 표시할 때 Windows에서는 PowerShell 형식으로 인용합니다. 복사한 명령을 자동 실행하지는 않습니다. 실행 상태와 소요 시간, 도구 버전, stdout/stderr 로그도 확인할 수 있습니다. 기록은 `status.json`에도 보존되어 재개 시 기존 이력에 이어집니다.
 
 기존 결과로 화면만 다시 생성하려면 다음을 실행하세요. 스캐너 설치·실행이나 네트워크 요청은 하지 않습니다.
 

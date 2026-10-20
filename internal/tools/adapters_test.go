@@ -69,3 +69,47 @@ func TestHelpExactFlag(t *testing.T) {
 		t.Fatal("alias rejected")
 	}
 }
+
+func TestScannerPerformanceDefaultsAndOverrides(t *testing.T) {
+	for _, name := range []string{"feroxbuster", "nuclei"} {
+		t.Run(name, func(t *testing.T) {
+			c := config.Default()
+			c.Wordlist = filepath.Join(t.TempDir(), "wordlist.txt")
+			if err := os.WriteFile(c.Wordlist, []byte("admin\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			in := Input{Config: c, RunDir: t.TempDir(), TemplatePaths: []string{"fixture.yaml"}, Services: []model.WebService{{URL: "https://fixture.test"}}}
+			scanner := Registry()[name]
+			calls, err := scanner.BuildArgs(in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			flags := []string{"--rate-limit", "-t", "--scan-limit"}
+			if name == "nuclei" {
+				flags = []string{"-rl", "-c", "-bs"}
+			}
+			for _, flag := range flags {
+				for _, arg := range calls[0].Args {
+					if arg == flag {
+						t.Fatalf("default forced %s: %v", flag, calls[0].Args)
+					}
+				}
+			}
+			in.Config.Limits[name] = config.Limit{Rate: 17, Concurrency: 125}
+			in.Config.FeroxScanLimit = 3
+			calls, err = scanner.BuildArgs(in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			joined := " " + strings.Join(calls[0].Args, " ") + " "
+			for _, want := range []string{flags[0] + " 17 ", flags[1] + " 125 "} {
+				if !strings.Contains(joined, " "+want) {
+					t.Fatalf("missing override %q: %s", want, joined)
+				}
+			}
+			if name == "feroxbuster" && !strings.Contains(joined, " --scan-limit 3 ") {
+				t.Fatal(joined)
+			}
+		})
+	}
+}
