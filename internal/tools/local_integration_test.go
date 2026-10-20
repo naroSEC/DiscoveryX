@@ -2,12 +2,12 @@ package tools
 
 import (
 	"context"
-	"discoveryx/internal/config"
-	"discoveryx/internal/model"
-	"discoveryx/internal/runner"
-	"discoveryx/internal/scope"
-	"discoveryx/internal/storage"
-	"discoveryx/internal/updater"
+	"github.com/naroSEC/DiscoveryX/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/runner"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
+	"github.com/naroSEC/DiscoveryX/internal/updater"
 	"io"
 	"net/http"
 	"net/http/httptest"

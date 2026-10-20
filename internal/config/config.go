@@ -1,8 +1,9 @@
 package config
 
 import (
-	"discoveryx/internal/scope"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/configs"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
@@ -11,6 +12,16 @@ import (
 	"strings"
 	"time"
 )
+
+const BuiltinTechRules = "builtin"
+const DefaultTechRules = "configs/tech-extensions.yaml"
+
+func ReadTechRules(path string) ([]byte, error) {
+	if path == BuiltinTechRules {
+		return configs.Read("tech-extensions.yaml")
+	}
+	return os.ReadFile(path)
+}
 
 type Limit struct {
 	Rate        int `yaml:"rate"`
@@ -52,7 +63,7 @@ type Config struct {
 func Default() Config {
 	base, _ := os.UserCacheDir()
 	base = filepath.Join(base, "discoveryx")
-	c := Config{Output: "runs", ToolsDir: filepath.Join(base, "tools"), TemplatesDir: filepath.Join(base, "templates"), PortScan: "first", Subfinder: "on", Crawl: "on", Directory: "on", Nuclei: "on", ScanType: "connect", ServiceVersion: true, Ports: "top-1000", Wordlist: "wordlists/common.txt", TechRules: "configs/tech-extensions.yaml", CrawlDepth: 3, DirectoryDepth: 3, Tags: "cve,vuln,vkev,kev", Severity: "medium,high,critical", HTTPTimeout: 10 * time.Second, StageTimeout: 30 * time.Minute, MaxDuration: 2 * time.Hour, MaxTargets: 100, LogLevel: "info", Limits: map[string]Limit{}}
+	c := Config{Output: "runs", ToolsDir: filepath.Join(base, "tools"), TemplatesDir: filepath.Join(base, "templates"), PortScan: "first", Subfinder: "on", Crawl: "on", Directory: "on", Nuclei: "on", ScanType: "connect", ServiceVersion: true, Ports: "top-1000", Wordlist: "wordlists/common.txt", TechRules: BuiltinTechRules, CrawlDepth: 3, DirectoryDepth: 3, Tags: "cve,vuln,vkev,kev", Severity: "medium,high,critical", HTTPTimeout: 10 * time.Second, StageTimeout: 30 * time.Minute, MaxDuration: 2 * time.Hour, MaxTargets: 100, LogLevel: "info", Limits: map[string]Limit{}}
 	for _, n := range []string{"naabu", "subfinder", "dnsx", "httpx", "katana", "feroxbuster", "nuclei"} {
 		c.Limits[n] = Limit{Rate: 20, Concurrency: 5}
 	}
@@ -60,16 +71,20 @@ func Default() Config {
 }
 func Load(path string) (Config, error) {
 	c := Default()
+	var b []byte
+	var e error
 	if path != "" {
-		b, e := os.ReadFile(path)
-		if e != nil {
-			return c, e
-		}
-		d := yaml.NewDecoder(strings.NewReader(string(b)))
-		d.KnownFields(true)
-		if e = d.Decode(&c); e != nil {
-			return c, e
-		}
+		b, e = os.ReadFile(path)
+	} else {
+		b, e = configs.Read("config.yaml")
+	}
+	if e != nil {
+		return c, e
+	}
+	d := yaml.NewDecoder(strings.NewReader(string(b)))
+	d.KnownFields(true)
+	if e = d.Decode(&c); e != nil {
+		return c, e
 	}
 	v := reflect.ValueOf(&c).Elem()
 	t := v.Type()
@@ -84,6 +99,11 @@ func Load(path string) (Config, error) {
 				return c, fmt.Errorf("%s: %w", key, e)
 			}
 			field.Set(dest.Elem())
+		}
+	}
+	if c.TechRules == DefaultTechRules {
+		if _, e := os.Stat(c.TechRules); os.IsNotExist(e) {
+			c.TechRules = BuiltinTechRules
 		}
 	}
 	return c, nil
@@ -163,12 +183,19 @@ func one(s string, choices ...string) bool {
 	return false
 }
 func (c *Config) Absolute() error {
-	for _, p := range []*string{&c.Output, &c.ToolsDir, &c.TemplatesDir, &c.Wordlist, &c.TechRules} {
+	for _, p := range []*string{&c.Output, &c.ToolsDir, &c.TemplatesDir, &c.Wordlist} {
 		s, e := filepath.Abs(*p)
 		if e != nil {
 			return e
 		}
 		*p = s
+	}
+	if c.TechRules != BuiltinTechRules {
+		s, e := filepath.Abs(c.TechRules)
+		if e != nil {
+			return e
+		}
+		c.TechRules = s
 	}
 	if c.Probes != "" {
 		s, e := filepath.Abs(c.Probes)

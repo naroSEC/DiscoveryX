@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,5 +30,29 @@ func TestValidation(t *testing.T) {
 	c.Limits["katana"] = Limit{}
 	if c.Validate() == nil {
 		t.Fatal("unlimited default accepted")
+	}
+}
+
+func TestBundledDefaultsOutsideSourceCheckout(t *testing.T) {
+	t.Chdir(t.TempDir())
+	c, e := Load("")
+	if e != nil {
+		t.Fatal(e)
+	}
+	if c.TechRules != BuiltinTechRules || c.Limits["feroxbuster"].Rate != 10 {
+		t.Fatal(c)
+	}
+	if e = c.Absolute(); e != nil {
+		t.Fatal(e)
+	}
+	if c.TechRules != BuiltinTechRules {
+		t.Fatal("builtin rules converted into a file path")
+	}
+	b, e := ReadTechRules(c.TechRules)
+	if e != nil || !bytes.Contains(b, []byte("extensions: [php]")) {
+		t.Fatalf("%s %v", b, e)
+	}
+	if _, e = ReadTechRules("missing-custom-rules.yaml"); !os.IsNotExist(e) {
+		t.Fatalf("custom missing file silently replaced: %v", e)
 	}
 }

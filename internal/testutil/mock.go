@@ -1,8 +1,8 @@
 package testutil
 
 import (
-	"discoveryx/internal/storage"
-	"discoveryx/internal/updater"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
+	"github.com/naroSEC/DiscoveryX/internal/updater"
 	"os"
 	"os/exec"
 	"path/filepath"

@@ -1,7 +1,7 @@
 package updater
 
 import (
-	"discoveryx/internal/storage"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
 	"os"
 	"path/filepath"
 	"time"

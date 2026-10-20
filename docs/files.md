@@ -6,6 +6,7 @@
 - `.gitignore`
 - `cmd/discoveryx/main.go`
 - `configs/config.yaml`
+- `configs/resources.go`
 - `configs/tech-extensions.yaml`
 - `docs/compatibility.md`
 - `docs/dnsx-help.txt`

@@ -2,11 +2,11 @@ package engine
 
 import (
 	"context"
-	"discoveryx/internal/config"
-	"discoveryx/internal/scope"
-	"discoveryx/internal/testutil"
-	"discoveryx/internal/tools"
-	"discoveryx/internal/updater"
+	"github.com/naroSEC/DiscoveryX/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
+	"github.com/naroSEC/DiscoveryX/internal/testutil"
+	"github.com/naroSEC/DiscoveryX/internal/tools"
+	"github.com/naroSEC/DiscoveryX/internal/updater"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -311,6 +311,32 @@ func TestWebOnlyHTTPXFailureKeepsInputURL(t *testing.T) {
 	}
 	if len(e.State.Data.WebServices) != 1 || e.State.Data.WebServices[0].URL != e.Config.Target || len(e.State.Data.WebServices[0].Technologies) != 0 {
 		t.Fatal(e.State.Data.WebServices)
+	}
+}
+
+func TestWebOnlyUsesBundledRulesOutsideCheckout(t *testing.T) {
+	e := webOnlyFixture(t, testutil.Binary(t))
+	e.Config.TechRules = config.BuiltinTechRules
+	e.Meta.Config = e.Config
+	if err := e.Run(context.Background(), false); err != nil {
+		t.Fatal(err)
+	}
+	if e.Meta.State != "Completed" {
+		t.Fatal(e.State.Stages)
+	}
+	b, err := os.ReadFile(filepath.Join(e.Dir, "inputs", "tech-extensions.yaml"))
+	if err != nil || !strings.Contains(string(b), "extensions: [php]") {
+		t.Fatalf("bundled rules snapshot: %s %v", b, err)
+	}
+	if _, ok := e.Meta.Resources[config.BuiltinTechRules]; ok {
+		t.Fatal("embedded resource treated as an external file")
+	}
+	r, err := Resume(e.Dir, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = r.Run(context.Background(), true); err != nil {
+		t.Fatal(err)
 	}
 }
 

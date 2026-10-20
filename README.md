@@ -43,31 +43,60 @@ flowchart LR
 
 ## 빠른 시작
 
-Go 1.25 이상이 필요합니다. PowerShell에서 저장소를 내려받고 빌드하세요.
+Go 1.25 이상이 설치되어 있다면 다음 명령으로 설치할 수 있습니다.
+
+```powershell
+go install github.com/naroSEC/DiscoveryX/cmd/discoveryx@latest
+discoveryx --help
+```
+
+기본 설정과 기술별 확장자 룰은 실행 파일에 포함되어 있어, 저장소를 따로 내려받지 않아도 됩니다. 직접 작성한 설정은 `--config`, 기술 매핑은 `--tech-rules`로 지정할 수 있습니다.
+
+<details>
+<summary>설치 후 discoveryx 명령을 찾지 못한다면</summary>
+
+Go의 실행 파일 설치 폴더가 PATH에 있는지 확인해 주세요. `GOBIN`을 지정하지 않았다면 기본 경로는 `$(go env GOPATH)\bin`입니다. 현재 PowerShell 세션에는 다음처럼 추가할 수 있습니다.
+
+```powershell
+$goBin = go env GOBIN
+if (-not $goBin) { $goBin = Join-Path (go env GOPATH) "bin" }
+$env:Path += ";$goBin"
+discoveryx --help
+```
+
+</details>
+
+<details>
+<summary>소스에서 직접 빌드하기</summary>
 
 ```powershell
 git clone https://github.com/naroSEC/DiscoveryX.git
 cd DiscoveryX
 go build -o discoveryx.exe ./cmd/discoveryx
+.\discoveryx.exe --help
 ```
+
+직접 빌드했다면 아래 예제의 `discoveryx`를 `.\discoveryx.exe`로 바꿔 실행하세요.
+
+</details>
 
 도구를 미리 설치하고 실행 환경을 확인할 수 있습니다. 설치하지 않고 스캔을 시작해도 필요한 도구는 해당 단계에서 자동으로 설치됩니다.
 
 ```powershell
-.\discoveryx.exe tools install
-.\discoveryx.exe doctor
+discoveryx tools install
+discoveryx doctor
 ```
 
 디렉터리 탐색에 사용할 사전은 `wordlists/common.txt`에 직접 넣어 주세요. 다른 사전은 `--wordlist`로 지정할 수 있습니다. Nuclei 템플릿은 별도 명령으로 설치합니다.
 
 ```powershell
-.\discoveryx.exe templates update
+discoveryx templates update
 ```
 
 준비가 끝났다면 대상 도메인으로 실행하세요. 기본 설정으로 모든 단계를 순서대로 진행합니다.
 
 ```powershell
-.\discoveryx.exe -u example.com
+discoveryx -u example.com
 ```
 
 > [!NOTE]
@@ -79,13 +108,13 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 ```powershell
 # 기본 순서로 실행
-.\discoveryx.exe -u example.com
+discoveryx -u example.com
 
 # 포트 스캔과 크롤링 제외
-.\discoveryx.exe -u example.com -ps off -cwl off
+discoveryx -u example.com -ps off -cwl off
 
 # Subfinder를 제외하고 원본 도메인의 DNS·웹 서비스부터 확인
-.\discoveryx.exe -u example.com -ps off -sbf off
+discoveryx -u example.com -ps off -sbf off
 ```
 
 `-sbf`, `-cwl`, `--dir`, `--nuc`는 `on/off`로 설정합니다. `-ps`는 `first`, `last`, `both`, `off`를 지원합니다. 긴 옵션인 `--subfinder`, `--crawl`, `--port-scan`도 사용할 수 있습니다.
@@ -93,7 +122,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 ### 포트 스캔을 마지막에 실행
 
 ```powershell
-.\discoveryx.exe -u example.com -ps last
+discoveryx -u example.com -ps last
 ```
 
 `-ps both`를 사용하면 최초에는 원본 도메인, 마지막에는 새로 발견한 호스트의 IP를 확인합니다. 동일 조건으로 완료한 IP는 중복 스캔하지 않습니다. 대상 호스트의 DNS 결과를 사용합니다.
@@ -101,7 +130,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 ### 이미 알고 있는 웹 서비스만 점검
 
 ```powershell
-.\discoveryx.exe -u https://example.com/app --web-only
+discoveryx -u https://example.com/app --web-only
 ```
 
 Naabu·Subfinder·Dnsx를 건너뛰고 **Httpx → Katana → Feroxbuster → Nuclei** 순서로 진행합니다. Httpx가 수집한 기술 스택은 디렉터리 탐색 확장자에도 반영됩니다.
@@ -111,7 +140,7 @@ Naabu·Subfinder·Dnsx를 건너뛰고 **Httpx → Katana → Feroxbuster → Nu
 ### 중단한 작업 재개
 
 ```powershell
-.\discoveryx.exe resume --run "runs\example.com_기존실행시각"
+discoveryx resume --run "runs\example.com_기존실행시각"
 ```
 
 기존 실행 디렉터리를 지정하면 검증된 완료 단계는 재사용합니다. 실패하거나 출력이 손상된 단계부터 다시 실행하며, 이전 원본 파일도 보존합니다.
@@ -125,7 +154,7 @@ CLI > 환경 변수 > config.yaml > 기본값
 ```
 
 ```powershell
-.\discoveryx.exe -u example.com -ps off `
+discoveryx -u example.com -ps off `
   --wordlist "C:\진단 자료\common.txt" `
   --output "C:\진단 결과" `
   --katana-rate 10 --katana-concurrency 2 `
@@ -139,12 +168,12 @@ CLI > 환경 변수 > config.yaml > 기본값
 ## 도구와 템플릿 관리
 
 ```powershell
-.\discoveryx.exe tools list
-.\discoveryx.exe tools update
-.\discoveryx.exe tools update --tool naabu
+discoveryx tools list
+discoveryx tools update
+discoveryx tools update --tool naabu
 
-.\discoveryx.exe templates version
-.\discoveryx.exe templates update
+discoveryx templates version
+discoveryx templates update
 ```
 
 외부 도구는 공식 GitHub Releases의 OS·아키텍처별 바이너리로 설치합니다. 체크섬이 있으면 검증하고, 새 실행 파일의 버전과 동작을 확인한 뒤 설치 정보를 전환합니다. 검증에 실패하면 기존 버전을 유지합니다.

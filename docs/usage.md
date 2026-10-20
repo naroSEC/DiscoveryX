@@ -4,7 +4,18 @@ Go 기반 Windows 우선 보안 정보 수집 CLI입니다. 입력한 도메인�
 
 ## 빌드와 시작
 
-Go 1.25 이상과 네트워크 연결이 필요합니다. 프로젝트 루트에서 실행하세요.
+Go 1.25 이상과 네트워크 연결이 필요합니다. 저장소를 내려받지 않고 설치하려면 다음 명령을 사용하세요.
+
+```powershell
+go install github.com/naroSEC/DiscoveryX/cmd/discoveryx@latest
+discoveryx --help
+```
+
+실행 파일은 `go env GOBIN`의 경로에 설치됩니다. 해당 값이 비어 있으면 `$(go env GOPATH)\bin`을 사용하므로 그 폴더를 PATH에 추가해 주세요. 설치된 명령은 아래 예제의 `.\discoveryx.exe` 대신 `discoveryx`로 실행할 수 있습니다.
+
+기본 설정과 기술별 확장자 룰은 실행 파일에도 포함됩니다. 현재 폴더의 `config.yaml` 또는 `configs/config.yaml`이 있으면 해당 파일을 읽으며, 없으면 내장 기본 설정을 사용합니다. 기본 기술 룰 파일이 없으면 내장 룰로 동작하고, 별도의 `--tech-rules <경로>`를 지정하면 그 파일을 사용합니다. `--tech-rules builtin`으로 내장 룰을 직접 선택할 수도 있습니다. 사전은 포함하지 않으므로 `--wordlist`로 직접 지정하세요.
+
+소스에서 직접 빌드하려면 프로젝트 루트에서 다음을 실행하세요.
 
 ```powershell
 go build -o discoveryx.exe ./cmd/discoveryx

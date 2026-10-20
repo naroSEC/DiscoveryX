@@ -1,10 +1,10 @@
 package engine
 
 import (
-	"discoveryx/internal/config"
-	"discoveryx/internal/model"
-	"discoveryx/internal/scope"
-	"discoveryx/internal/updater"
+	"github.com/naroSEC/DiscoveryX/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
+	"github.com/naroSEC/DiscoveryX/internal/updater"
 	"time"
 )
 

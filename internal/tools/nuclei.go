@@ -1,10 +1,10 @@
 package tools
 
 import (
-	"discoveryx/internal/model"
-	"discoveryx/internal/parser"
-	"discoveryx/internal/storage"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/parser"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
 	"io"
 	"path/filepath"
 	"regexp"

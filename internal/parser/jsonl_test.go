@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"discoveryx/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/model"
 	"strings"
 	"testing"
 )

@@ -25,6 +25,12 @@ CLI 단축/긴 옵션과 first/last/both/off 계획, web-only 우선순위, 단�
 - 실제 Httpx 1.12.0으로 루프백 PHP 헤더 응답을 확인했습니다. `/app?x=1` URL을 유지하면서 `PHP:8.3.0`을 수집했고, Feroxbuster 인자에 `php`가 추가되는 것을 확인했습니다. `TestInstalledWebOnlyFingerprintOnLoopback`으로 다시 실행할 수 있습니다.
 - Web-only에서 사용하는 `-nfs`도 저장된 실제 Windows 도움말과 대조합니다.
 
+## Go 설치 지원 검증
+
+- 모듈 경로와 내부 import를 `github.com/naroSEC/DiscoveryX`로 맞췄습니다.
+- `go install ./cmd/discoveryx`를 별도 `GOBIN`에 실행한 뒤, 소스와 설정 파일이 없는 작업 폴더에서 `--version`, `--help`, `tools list`를 확인했습니다.
+- 기본 YAML과 기술별 확장자 룰은 `go:embed`로 포함합니다. 소스 외부에서 기본 설정을 읽고, 내장 룰의 스냅샷 생성과 Web-only 실행·재개가 동작하는 테스트를 추가했습니다. 명시한 사용자 룰 파일이 없으면 내장 룰로 조용히 대체하지 않습니다.
+
 ## 실행하지 못한 추가 검사
 
 `go test -race ./... -count=1`은 테스트 실행 전에 `runtime/cgo: ... cgo.exe: exit status 2`로 빌드 실패했습니다. 발견된 C 컴파일러는 `C:\msys64\mingw32\bin\gcc.exe`이며 Go 실행 대상은 windows/amd64입니다. 기본 테스트와 일반 Go 빌드는 통과했으나 race detector 통과로 표시하지 않습니다.

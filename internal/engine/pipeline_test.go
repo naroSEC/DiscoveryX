@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"discoveryx/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/config"
 	"reflect"
 	"testing"
 )

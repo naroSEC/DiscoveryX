@@ -2,16 +2,17 @@ package engine
 
 import (
 	"context"
-	"discoveryx/internal/config"
-	"discoveryx/internal/model"
-	"discoveryx/internal/parser"
-	"discoveryx/internal/runner"
-	"discoveryx/internal/scope"
-	"discoveryx/internal/storage"
-	"discoveryx/internal/tools"
-	"discoveryx/internal/updater"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/parser"
+	"github.com/naroSEC/DiscoveryX/internal/runner"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
+	"github.com/naroSEC/DiscoveryX/internal/tools"
+	"github.com/naroSEC/DiscoveryX/internal/updater"
 	"io"
 	"net"
 	"net/http"
@@ -421,14 +422,18 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 			dest   *string
 			name   string
 		}{{e.Config.Wordlist, &in.Config.Wordlist, "wordlist.txt"}, {e.Config.TechRules, &in.Config.TechRules, "tech-extensions.yaml"}} {
-			hash, he := storage.Hash(resource.source)
-			if he != nil {
-				return 0, files, "", he
+			var b []byte
+			var re error
+			if resource.name == "tech-extensions.yaml" {
+				b, re = config.ReadTechRules(resource.source)
+			} else {
+				b, re = os.ReadFile(resource.source)
 			}
-			e.Meta.Resources[resource.source] = hash
-			b, re := os.ReadFile(resource.source)
 			if re != nil {
 				return 0, files, "", re
+			}
+			if resource.source != config.BuiltinTechRules {
+				e.Meta.Resources[resource.source] = fmt.Sprintf("%x", sha256.Sum256(b))
 			}
 			dest := filepath.Join(e.Dir, "inputs", resource.name)
 			if re = storage.Atomic(dest, b); re != nil {

@@ -2,8 +2,8 @@ package tools
 
 import (
 	"bufio"
-	"discoveryx/internal/model"
-	"discoveryx/internal/scope"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
 	"io"
 	"strings"
 )

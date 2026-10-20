@@ -3,10 +3,10 @@ package tools
 import (
 	"context"
 	"crypto/sha256"
-	"discoveryx/internal/runner"
-	"discoveryx/internal/storage"
 	"encoding/hex"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/internal/runner"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
 	"gopkg.in/yaml.v3"
 	"io/fs"
 	"os"

@@ -1,6 +1,6 @@
 package engine
 
-import "discoveryx/internal/config"
+import "github.com/naroSEC/DiscoveryX/internal/config"
 
 type Stage struct {
 	Name  string

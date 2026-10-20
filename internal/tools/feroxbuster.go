@@ -1,10 +1,11 @@
 package tools
 
 import (
-	"discoveryx/internal/model"
-	"discoveryx/internal/parser"
-	"discoveryx/internal/storage"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/parser"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
 	"gopkg.in/yaml.v3"
 	"io"
 	"os"
@@ -59,7 +60,7 @@ func Feroxbuster() Tool {
 		if st, e := os.Stat(in.Config.Wordlist); e != nil || st.IsDir() {
 			return nil, fmt.Errorf("wordlist missing: provide %s or --wordlist; DiscoveryX never downloads/creates a wordlist", in.Config.Wordlist)
 		}
-		b, e := os.ReadFile(in.Config.TechRules)
+		b, e := config.ReadTechRules(in.Config.TechRules)
 		if e != nil {
 			return nil, e
 		}

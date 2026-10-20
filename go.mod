@@ -1,4 +1,4 @@
-module discoveryx
+module github.com/naroSEC/DiscoveryX
 
 go 1.25.0
 

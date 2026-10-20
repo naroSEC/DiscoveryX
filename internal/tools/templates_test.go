@@ -2,10 +2,10 @@ package tools
 
 import (
 	"context"
-	"discoveryx/internal/config"
-	"discoveryx/internal/runner"
-	"discoveryx/internal/storage"
-	"discoveryx/internal/testutil"
+	"github.com/naroSEC/DiscoveryX/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/runner"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
+	"github.com/naroSEC/DiscoveryX/internal/testutil"
 	"os"
 	"path/filepath"
 	"testing"

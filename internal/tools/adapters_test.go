@@ -1,9 +1,9 @@
 package tools
 
 import (
-	"discoveryx/internal/config"
-	"discoveryx/internal/model"
-	"discoveryx/internal/scope"
+	"github.com/naroSEC/DiscoveryX/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
 	"os"
 	"path/filepath"
 	"strings"

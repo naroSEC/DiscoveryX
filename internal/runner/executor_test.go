@@ -3,9 +3,9 @@ package runner_test
 import (
 	"bytes"
 	"context"
-	"discoveryx/internal/runner"
-	"discoveryx/internal/testutil"
 	"errors"
+	"github.com/naroSEC/DiscoveryX/internal/runner"
+	"github.com/naroSEC/DiscoveryX/internal/testutil"
 	"os"
 	"strconv"
 	"strings"

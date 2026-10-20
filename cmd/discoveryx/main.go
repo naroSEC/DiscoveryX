@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"discoveryx/internal/cli"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/internal/cli"
 	"os"
 	"os/signal"
 )

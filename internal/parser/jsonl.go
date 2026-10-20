@@ -2,10 +2,10 @@ package parser
 
 import (
 	"bufio"
-	"discoveryx/internal/model"
-	"discoveryx/internal/scope"
 	"encoding/json"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
 	"io"
 	"net/url"
 	"strings"

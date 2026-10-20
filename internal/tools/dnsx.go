@@ -1,8 +1,8 @@
 package tools
 
 import (
-	"discoveryx/internal/model"
-	"discoveryx/internal/parser"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/parser"
 	"io"
 )
 

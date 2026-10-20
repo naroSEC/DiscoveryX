@@ -2,12 +2,12 @@ package tools
 
 import (
 	"context"
-	"discoveryx/internal/config"
-	"discoveryx/internal/model"
-	"discoveryx/internal/runner"
-	"discoveryx/internal/scope"
-	"discoveryx/internal/storage"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/internal/config"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/runner"
+	"github.com/naroSEC/DiscoveryX/internal/scope"
+	"github.com/naroSEC/DiscoveryX/internal/storage"
 	"io"
 	"os"
 	"path/filepath"

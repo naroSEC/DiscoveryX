@@ -1,9 +1,9 @@
 package tools
 
 import (
-	"discoveryx/internal/model"
-	"discoveryx/internal/parser"
 	"fmt"
+	"github.com/naroSEC/DiscoveryX/internal/model"
+	"github.com/naroSEC/DiscoveryX/internal/parser"
 	"io"
 	"regexp"
 	"strings"
