@@ -69,3 +69,18 @@
 - `README.md`
 - `tests/mockscanner/main.go`
 - `wordlists/README.md`
+
+## HTML 리포트 추가 파일
+
+- `internal/cli/report.go`
+- `internal/cli/report_test.go`
+- `internal/engine/commands.go`
+- `internal/engine/report_test.go`
+- `internal/model/command.go`
+- `internal/runner/recorder.go`
+- `internal/runner/recorder_test.go`
+- `internal/reporting/report.go`
+- `internal/reporting/report_test.go`
+- `internal/reporting/page.html`
+- `internal/reporting/report.css`
+- `internal/reporting/report.js`

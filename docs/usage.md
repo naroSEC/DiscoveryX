@@ -116,6 +116,27 @@ Nuclei 스캔은 설치된 템플릿을 로컬에서 필터링하고 복사본�
 - `normalized/`: assets, ports, webservices, urls, vulnerabilities, invalid-hosts, out-of-scope JSON과 단계 체크포인트.
 - `logs/`: execution.log, errors.log.
 - `summary.json`: 개수, 실행 시간, 단계별 결과와 출력 디렉터리.
+- `report.html`: 데이터와 화면 리소스를 포함한 단일 HTML 리포트.
+- `logs/commands.json`: 스캔 단계에서 실제 호출한 실행 파일과 인자, 시작 시각·소요 시간·상태·로그 경로.
+
+### HTML 리포트
+
+`report.html`을 브라우저에서 열면 개요와 자산·포트·웹 서비스·URL·디렉터리·탐지 결과·실행 단계·명령어를 구분해 볼 수 있습니다. 외부 링크와 미확인 호스트도 별도 화면에서 확인합니다. 화면 리소스는 파일에 포함되어 있어 CDN이나 별도 서버가 필요하지 않습니다.
+
+검색과 호스트 필터, 탐지 결과의 심각도·중복 필터, 포트 스캔 시점 필터를 지원합니다. 표 머리글로 정렬하고 페이지당 표시 건수를 바꿀 수 있습니다. 레코드의 상세 버튼은 원본 JSON과 근거 경로를 보여 줍니다. JSON 내보내기는 현재 화면에서 필터링한 전체 레코드를 저장합니다. 개요 화면에서는 리포트 전체 데이터를 내보냅니다.
+
+명령어 화면은 스캐너 실행과 사전 점검·템플릿 목록 조회를 구분합니다. 실제 실행 파일 경로와 인자를 기록하고, 표시할 때 Windows에서는 PowerShell 형식으로 인용합니다. 복사한 명령을 자동 실행하지는 않습니다. 실행 상태와 소요 시간, 도구 버전, stdout/stderr 로그도 확인할 수 있습니다. 기록은 `status.json`에도 보존되어 재개 시 기존 이력에 이어집니다.
+
+기존 결과로 화면만 다시 생성하려면 다음을 실행하세요. 스캐너 설치·실행이나 네트워크 요청은 하지 않습니다.
+
+```powershell
+.\discoveryx.exe report --run "runs\example.com_기존실행시각"
+```
+
+실행 중인 폴더에는 잠금을 적용합니다. 이전 버전에 명령어 이력이 없으면 미기록으로 표시하며, 결과만 보고 명령어를 재구성하지 않습니다. 리포트에는 수집 데이터와 로컬 실행 경로가 포함됩니다. 원본 로그 링크까지 유지하려면 실행 폴더 전체를 함께 보관하세요.
+
+### 원본 보존과 재개
+
 
 Feroxbuster는 여러 대상을 각각 `feroxbuster_0000.jsonl` 등의 파일에 보존합니다. 원본 이벤트는 삭제하지 않고 정규화 URL을 중복 제거합니다. Nuclei는 원본/정규화 이벤트를 모두 보존하면서 중복 이벤트에 `duplicate_of`를 연결합니다. 탐지 시간과 템플릿 버전/트리 해시, 원본 행 번호를 함께 저장합니다. 비정상 JSONL 행은 건너뛰면서 파싱 경고와 단계 실패를 기록하고 나머지 레코드를 보존합니다.
 
@@ -125,7 +146,7 @@ Ctrl+C는 context를 취소하며 Windows Job Object 또는 Unix 프로세스 �
 
 ## 구조와 확장
 
-`internal/cli`, `config`, `runner`, `tools`, `updater`, `engine`, `scope`, `model`, `parser`, `storage`로 책임을 분리했습니다. 도구는 `Name/Version/Validate/BuildArgs/Run/Parse/RequiredInputs/Outputs` 인터페이스를 구현합니다. `Registry()`에 어댑터를 등록하고 `engine.Plan()`에 단계 설명을 추가해 확장할 수 있습니다. 현재 입력 연결은 호스트/웹 서비스/포트/템플릿 유형을 중심으로 구현되어 있으며, GitHub/Cloud처럼 다른 유형은 입력 연결도 추가해야 합니다. 해당 기능, 대시보드, AI 기능, DB 서버는 구현하지 않았습니다.
+`internal/cli`, `config`, `runner`, `tools`, `updater`, `engine`, `scope`, `model`, `parser`, `storage`, `reporting`으로 책임을 분리했습니다. 도구는 `Name/Version/Validate/BuildArgs/Run/Parse/RequiredInputs/Outputs` 인터페이스를 구현합니다. `Registry()`에 어댑터를 등록하고 `engine.Plan()`에 단계 설명을 추가해 확장할 수 있습니다. 현재 입력 연결은 호스트/웹 서비스/포트/템플릿 유형을 중심으로 구현되어 있으며, GitHub/Cloud처럼 다른 유형은 입력 연결도 추가해야 합니다. 해당 탐색 기능과 웹 서버 기반 대시보드, AI 기능, DB 서버는 구현하지 않았습니다.
 
 ## 검증과 현재 제약
 

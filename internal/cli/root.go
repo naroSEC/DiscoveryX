@@ -37,6 +37,7 @@ func Normalize(args []string) []string {
 	return out
 }
 func New(args []string, out, errOut io.Writer) (*cobra.Command, error) {
+	invocation := append([]string{os.Args[0]}, args...)
 	args = Normalize(args)
 	path := ""
 	for i, s := range args {
@@ -69,6 +70,7 @@ func New(args []string, out, errOut io.Writer) (*cobra.Command, error) {
 		if e := eng.Initialize(); e != nil {
 			return e
 		}
+		eng.Meta.Command = invocation
 		e := eng.Run(cmd.Context(), false)
 		eng.PrintSummary()
 		if e != nil {
@@ -85,6 +87,7 @@ func New(args []string, out, errOut io.Writer) (*cobra.Command, error) {
 	f := root.PersistentFlags()
 	bind(f, &c, &path)
 	root.AddCommand(toolsCommand(&c, out), templatesCommand(&c, out), doctorCommand(&c, out), resumeCommand(out))
+	root.AddCommand(reportCommand(out))
 	return root, nil
 }
 func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {

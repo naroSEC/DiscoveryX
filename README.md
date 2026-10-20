@@ -9,7 +9,7 @@
 ![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat-square&logo=go&logoColor=white)
 ![Platform](https://img.shields.io/badge/Windows-first-0078D4?style=flat-square)
 ![Interface](https://img.shields.io/badge/Interface-CLI-18181B?style=flat-square)
-![Output](https://img.shields.io/badge/Output-JSONL_%2B_JSON-6366F1?style=flat-square)
+![Output](https://img.shields.io/badge/Output-HTML_%2B_JSONL_%2B_JSON-6366F1?style=flat-square)
 
 [빠른 시작](#빠른-시작) · [사용 예제](#사용-예제) · [설정](#설정) · [사용 가이드](docs/usage.md)
 
@@ -38,6 +38,7 @@ flowchart LR
 - **필요한 단계만 선택합니다.** 수집 단계를 건너뛰거나 웹 점검만 실행할 수 있습니다.
 - **범위를 지킵니다.** 입력한 도메인과 하위 도메인을 다음 단계로 넘기고, 외부 링크와 CNAME은 별도로 기록합니다.
 - **원본을 남깁니다.** 도구별 출력과 정규화한 결과를 따로 보관해 탐지 근거를 확인할 수 있습니다.
+- **결과를 한눈에 봅니다.** HTML 리포트에서 자산과 탐지 결과를 구분해 살펴보고, 사용한 명령어까지 확인할 수 있습니다.
 - **중단한 작업을 이어 갑니다.** 재개할 때 완료 상태와 파일 해시를 함께 확인합니다.
 - **업데이트 시점을 직접 정합니다.** 실행 파일과 Nuclei 템플릿을 구분해 관리하며 일반 스캔 중에는 갱신하지 않습니다.
 
@@ -182,16 +183,32 @@ discoveryx templates update
 
 ## 결과 확인
 
-실행마다 독립된 디렉터리가 생깁니다. 콘솔에는 발견 건수와 실패·건너뜀 사유를 표시하고, 상세 결과는 파일로 남깁니다.
+실행이 끝나면 결과 폴더의 **`report.html`을 브라우저로 열어 보세요.** 별도 서버나 인터넷 연결 없이 결과를 살펴볼 수 있습니다. 밝은 화면과 어두운 화면을 지원하고, 좁은 화면에서도 표를 가로로 넘겨 읽을 수 있습니다.
+
+- **개요:** 주요 발견 건수, 심각도 분포, 단계별 진행 상태를 한 화면에 표시합니다.
+- **결과 탐색:** 자산·포트·웹 서비스·URL·디렉터리·탐지 결과를 나눠 봅니다. 검색, 호스트·심각도 필터, 정렬과 페이지 이동을 지원합니다.
+- **상세 확인:** 개별 레코드의 JSON과 원본 근거를 확인하고, 현재 필터에 맞는 결과를 JSON으로 내보낼 수 있습니다. 탐지 결과의 중복 표시도 전환할 수 있습니다.
+- **명령어 기록:** DiscoveryX 실행 명령과 각 스캔 단계에서 호출한 도구의 경로·인자·실행 시간·상태를 표시합니다. 사전 점검과 템플릿 목록 조회는 따로 구분하고, 명령어 복사와 stdout/stderr 로그 확인을 제공합니다.
+
+이미 저장한 실행 결과에서도 리포트만 다시 만들 수 있습니다. 이 명령은 스캐너를 실행하지 않습니다.
+
+```powershell
+discoveryx report --run "runs\example.com_기존실행시각"
+```
+
+이전 버전의 결과에 명령어 기록이 없으면 해당 항목은 비어 있는 상태로 표시합니다. 당시 사용한 명령어를 추측해서 채우지 않습니다.
+
+실행마다 독립된 디렉터리가 생깁니다. 콘솔에는 발견 건수와 실패·건너뜀 사유, HTML 리포트 경로를 표시합니다.
 
 ```text
 runs/<호스트>_<실행시각>/
+├── report.html       # 검색·필터·상세 보기를 제공하는 오프라인 리포트
 ├── metadata.json     # 대상, 설정, 도구 버전
 ├── status.json       # 단계별 상태와 무결성 정보
 ├── inputs/           # 정제한 호스트와 웹 URL, 입력 스냅샷
 ├── raw/              # 도구별 원본 결과와 프로세스 로그
 ├── normalized/       # 자산, 포트, 웹 서비스, URL, 탐지 이벤트
-├── logs/             # 실행 로그와 오류
+├── logs/             # 실행 로그, 오류, commands.json 명령어 기록
 └── summary.json      # 통합 요약
 ```
 

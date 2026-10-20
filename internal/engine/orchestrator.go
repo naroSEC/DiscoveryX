@@ -8,6 +8,7 @@ import (
 	"github.com/naroSEC/DiscoveryX/internal/config"
 	"github.com/naroSEC/DiscoveryX/internal/model"
 	"github.com/naroSEC/DiscoveryX/internal/parser"
+	"github.com/naroSEC/DiscoveryX/internal/reporting"
 	"github.com/naroSEC/DiscoveryX/internal/runner"
 	"github.com/naroSEC/DiscoveryX/internal/scope"
 	"github.com/naroSEC/DiscoveryX/internal/storage"
@@ -18,6 +19,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -63,6 +65,7 @@ func (e *Engine) Initialize() error {
 		}
 	}
 	e.Meta = Metadata{Schema: 1, Started: time.Now().UTC(), Config: e.Config, Scope: v, Tools: map[string]updater.Installation{}, State: "Pending"}
+	e.Meta.Platform = runtime.GOOS
 	for _, s := range Plan(e.Config) {
 		e.State.Stages = append(e.State.Stages, model.StageState{Name: s.Name, Status: "Pending"})
 	}
@@ -152,6 +155,12 @@ func (e *Engine) Run(ctx context.Context, resume bool) (err error) {
 	}
 	e.errors = io.MultiWriter(e.Out, log, errs)
 	if resume {
+		for i := range e.State.Commands {
+			if e.State.Commands[i].Status == "Running" {
+				e.State.Commands[i].Status = "Interrupted"
+				e.State.Commands[i].Error = "Previous process ended before completion was recorded"
+			}
+		}
 		for path, hash := range e.Meta.Resources {
 			now, he := storage.Hash(path)
 			if he != nil || now != hash {
@@ -314,6 +323,7 @@ func (e *Engine) verify(files map[string]string) bool {
 }
 func (e *Engine) execute(parent context.Context, s Stage) (count int, files []string, skip string, err error) {
 	ctx, cancel := context.WithTimeout(parent, e.Config.StageTimeout)
+	executor := runner.Recorder{Executor: e.Executor, Stage: s.Name, Tool: s.Tool, Save: e.recordCommand}
 	defer cancel()
 	t, ok := e.Registry[s.Tool]
 	if !ok {
@@ -479,14 +489,14 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 	if err = e.save(); err != nil {
 		return
 	}
-	if err = t.Validate(ctx, e.Executor, installation.Path); err != nil {
+	if err = t.Validate(ctx, executor, installation.Path); err != nil {
 		return
 	}
 	helpFlag := "-h"
 	if s.Tool == "feroxbuster" {
 		helpFlag = "--help"
 	}
-	in.Help, err = runner.Probe(ctx, e.Executor, installation.Path, helpFlag)
+	in.Help, err = runner.Probe(ctx, executor, installation.Path, helpFlag)
 	if err != nil {
 		return
 	}
@@ -498,7 +508,7 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		return 0, files, "no targets", nil
 	}
 	if s.Tool == "nuclei" {
-		help, pe := runner.Probe(ctx, e.Executor, installation.Path, "-h")
+		help, pe := runner.Probe(ctx, executor, installation.Path, "-h")
 		if pe != nil {
 			return 0, files, "", pe
 		}
@@ -509,7 +519,7 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		}
 		list := filepath.Join(e.Dir, "inputs", "selected-templates.txt")
 		args := []string{"-tl", "-duc", "-config", filepath.Join(e.Dir, "inputs", "nuclei-config.yaml"), "-t", list, "-ud", e.Config.TemplatesDir, "-tags", e.Config.Tags, "-s", e.Config.Severity, "-pt", "http", "-dut", "-etags", "dos,fuzz,fuzzing,headless,code,oast,unsafe", "-ni"}
-		selection, ce := runner.Capture(ctx, e.Executor, installation.Path, args...)
+		selection, ce := runner.Capture(ctx, executor, installation.Path, args...)
 		if se := storage.Atomic(filepath.Join(e.Dir, "raw", "nuclei-template-list.log"), []byte(selection)); se != nil {
 			return 0, files, "", se
 		}
@@ -556,7 +566,7 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 		if e.Config.LogLevel == "debug" {
 			fmt.Fprintf(e.log, "command: %q %q\n", installation.Path, call.Args)
 		}
-		runErr := t.Run(ctx, e.Executor, installation.Path, call, in)
+		runErr := t.Run(ctx, executor, installation.Path, call, in)
 		if runErr != nil {
 			runErrors = append(runErrors, runErr)
 		}
@@ -627,13 +637,30 @@ func (e *Engine) execute(parent context.Context, s Stage) (count int, files []st
 	return
 }
 func (e *Engine) archivePrevious(path string) error {
+	changed := false
 	for _, p := range []string{path, path + ".stdout.log", path + ".stderr.log"} {
 		if _, err := os.Stat(p); err == nil {
 			backup := p + ".previous-" + time.Now().Format("20060102150405.000000000")
 			if err = os.Rename(p, backup); err != nil {
 				return err
 			}
+			oldRef, _ := filepath.Rel(e.Dir, p)
+			newRef, _ := filepath.Rel(e.Dir, backup)
+			for i := range e.State.Commands {
+				for _, ref := range []*string{&e.State.Commands[i].Stdout, &e.State.Commands[i].Stderr} {
+					if *ref == filepath.ToSlash(oldRef) {
+						*ref = filepath.ToSlash(newRef)
+						changed = true
+					}
+				}
+			}
 		}
+	}
+	if changed {
+		if err := storage.JSON(filepath.Join(e.Dir, "logs", "commands.json"), e.State.Commands); err != nil {
+			return err
+		}
+		return e.save()
 	}
 	return nil
 }
@@ -708,7 +735,10 @@ func (e *Engine) writeResults() error {
 		}
 	}
 	s := e.Summary()
-	return storage.JSON(filepath.Join(e.Dir, "summary.json"), s)
+	if err := storage.JSON(filepath.Join(e.Dir, "summary.json"), s); err != nil {
+		return err
+	}
+	return reporting.Write(e.Dir, reporting.Snapshot{Target: e.Config.Target, State: e.Meta.State, Started: e.Meta.Started, Updated: e.Meta.Updated, Duration: e.State.ActiveDuration, Output: e.Dir, Platform: e.Meta.Platform, Invocation: e.Meta.Command, Stages: e.State.Stages, Data: e.State.Data, Commands: e.State.Commands, Tools: e.Meta.Tools})
 }
 func (e *Engine) Summary() Summary {
 	s := Summary{Target: e.Config.Target, Duration: e.State.ActiveDuration, WebServices: len(e.State.Data.WebServices), Ports: len(e.State.Data.Ports), Findings: len(e.State.Data.Vulnerabilities), Stages: e.State.Stages, Output: e.Dir, State: e.Meta.State}
@@ -738,6 +768,9 @@ func (e *Engine) Summary() Summary {
 }
 func (e *Engine) PrintSummary() {
 	s := e.Summary()
+	if _, err := os.Stat(filepath.Join(e.Dir, "report.html")); err == nil {
+		fmt.Fprintf(e.Out, "HTML report: %s\n", filepath.Join(e.Dir, "report.html"))
+	}
 	fmt.Fprintf(e.Out, "\nTarget: %s\nState: %s | Duration: %s\nSubdomains: %d | Resolved: %d | Web services: %d\nPorts: %d | Crawled URLs: %d | Directories: %d\nFindings: %d events / %d unique (review required)\nOutput: %s\n", s.Target, s.State, s.Duration.Round(time.Millisecond), s.Subdomains, s.Resolved, s.WebServices, s.Ports, s.URLs, s.Directories, s.Findings, s.UniqueFindings, s.Output)
 	for _, st := range s.Stages {
 		if st.Status == "Failed" || st.Status == "Skipped" {

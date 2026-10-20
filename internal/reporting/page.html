@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{{.Policy}}">
+<meta name="referrer" content="no-referrer">
+<title>DiscoveryX · {{.Target}}</title>
+<style>{{.Style}}</style>
+</head>
+<body>
+<a class="skip-link" href="#main">결과로 바로 이동</a>
+<aside class="sidebar" aria-label="리포트 탐색">
+  <a href="#overview" class="brand"><span class="brand-mark" aria-hidden="true">X</span><span>Discovery<span class="brand-x">X</span><small>SCAN INTELLIGENCE</small></span></a>
+  <div class="workspace"><span class="workspace-dot"></span><span>LOCAL WORKSPACE<small id="sidebar-target"></small></span></div>
+  <div class="nav-label">WORKSPACE</div>
+  <nav id="navigation" aria-label="결과 구분"></nav>
+  <div class="sidebar-bottom"><span class="offline-dot"></span> Offline report<small>모든 결과는 이 파일 안에 있습니다.</small></div>
+</aside>
+<div class="shell">
+  <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong id="breadcrumb">Overview</strong></div><div class="top-actions"><label class="search-box"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="결과 검색…" aria-label="결과 검색"><kbd>Ctrl K</kbd></label><button id="theme" class="icon-button" type="button" aria-label="밝은 화면과 어두운 화면 전환">◐</button><button id="export" class="button subtle" type="button">JSON 내보내기 <span aria-hidden="true">↗</span></button></div></header>
+  <main id="main" tabindex="-1">
+    <div id="demo-banner" class="demo-banner" hidden>DEMO · 화면 확인을 위한 테스트 데이터입니다. 실제 스캔 결과가 아닙니다.</div>
+    <section class="page-heading"><div><div class="eyebrow" id="eyebrow">SCAN INTELLIGENCE</div><h1 id="page-title">수집 결과를 한눈에.</h1><p id="page-description"></p></div><div id="run-status"></div></section>
+    <section class="run-strip" aria-label="실행 정보"><div><span>TARGET</span><strong id="target"></strong></div><div><span>STARTED</span><strong id="started"></strong></div><div><span>DURATION</span><strong id="duration"></strong></div><div><span>PIPELINE</span><strong id="pipeline-count"></strong></div></section>
+    <div id="content"></div>
+    <footer><span>DiscoveryX <span class="footer-separator">/</span> Local intelligence, clearly organized.</span><span id="updated"></span></footer>
+  </main>
+</div>
+<dialog id="detail" aria-labelledby="detail-title"><div class="dialog-header"><div><div class="eyebrow">RECORD DETAILS</div><h2 id="detail-title">상세 결과</h2></div><button id="close-detail" class="icon-button" type="button" aria-label="상세 결과 닫기">×</button></div><div id="detail-body"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script id="report-data" type="application/json">{{.Payload}}</script>
+<script>{{.Script}}</script>
+</body>
+</html>

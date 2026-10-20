@@ -9,6 +9,8 @@ import (
 )
 
 type Metadata struct {
+	Command         []string                        `json:"command,omitempty"`
+	Platform        string                          `json:"platform,omitempty"`
 	Resources       map[string]string               `json:"resource_sha256,omitempty"`
 	Schema          int                             `json:"schema"`
 	Started         time.Time                       `json:"started"`
@@ -21,6 +23,7 @@ type Metadata struct {
 	State           string                          `json:"state"`
 }
 type State struct {
+	Commands       []model.Command    `json:"commands,omitempty"`
 	Stages         []model.StageState `json:"stages"`
 	Data           model.Data         `json:"data"`
 	ScannedIPs     []string           `json:"scanned_ips"`
