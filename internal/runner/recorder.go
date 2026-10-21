@@ -21,7 +21,7 @@ type Recorder struct {
 func (r Recorder) Run(ctx context.Context, req Request) error {
 	purpose := "inspect"
 	for _, arg := range req.Args {
-		if arg == "-o" {
+		if arg == "-o" || arg == "--jsonl" {
 			purpose = "scan"
 			break
 		}

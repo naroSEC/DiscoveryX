@@ -175,7 +175,7 @@ func SelectAsset(r Release, name, platform, arch string) (Asset, error) {
 		if !archOK && name == "feroxbuster" && platform == "windows" && arch == "amd64" {
 			osOK = false
 		}
-		if osOK && archOK && (strings.HasSuffix(s, ".zip") || strings.HasSuffix(s, ".tar.gz") || strings.HasSuffix(s, ".exe")) {
+		if osOK && archOK && (strings.HasSuffix(s, ".zip") || strings.HasSuffix(s, ".tar.gz") || strings.HasSuffix(s, ".exe") || (name == "ghrecon" && s == "ghrecon-"+platform+"-"+arch)) {
 			choices = append(choices, a)
 		}
 	}

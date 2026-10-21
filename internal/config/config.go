@@ -37,6 +37,14 @@ type Limit struct {
 	Concurrency int `yaml:"concurrency"`
 }
 type Config struct {
+	GitHubToken        string `yaml:"-" json:"-"`
+	GitHubTokenFile    string `yaml:"-" json:"-"`
+	GHRecon            string `yaml:"ghrecon"`
+	GHReconProfile     string `yaml:"ghrecon_profile"`
+	GHReconMaxQueries  int    `yaml:"ghrecon_max_queries"`
+	GHReconMaxResults  int    `yaml:"ghrecon_max_results"`
+	GHReconConcurrency int    `yaml:"ghrecon_concurrency"`
+
 	FeroxScanLimit      int              `yaml:"feroxbuster_scan_limit"`
 	TemplateAutoInstall bool             `yaml:"template_auto_install"`
 	Target              string           `yaml:"target"`
@@ -74,7 +82,7 @@ type Config struct {
 func Default() Config {
 	base, _ := os.UserCacheDir()
 	base = filepath.Join(base, "discoveryx")
-	c := Config{TemplateAutoInstall: true, Output: "runs", ToolsDir: filepath.Join(base, "tools"), TemplatesDir: filepath.Join(base, "templates"), PortScan: "first", Subfinder: "on", Crawl: "on", Directory: "on", Nuclei: "on", ScanType: "connect", ServiceVersion: true, Ports: "top-1000", Wordlist: BuiltinWordlist, TechRules: BuiltinTechRules, CrawlDepth: 3, DirectoryDepth: 3, Tags: "cve,vuln,vkev,kev", Severity: "medium,high,critical", HTTPTimeout: 10 * time.Second, StageTimeout: 30 * time.Minute, MaxDuration: 2 * time.Hour, MaxTargets: 100, LogLevel: "info", Limits: map[string]Limit{}}
+	c := Config{GHRecon: "auto", GHReconProfile: "standard", GHReconMaxQueries: 50, GHReconMaxResults: 100, GHReconConcurrency: 4, TemplateAutoInstall: true, Output: "runs", ToolsDir: filepath.Join(base, "tools"), TemplatesDir: filepath.Join(base, "templates"), PortScan: "first", Subfinder: "on", Crawl: "on", Directory: "on", Nuclei: "on", ScanType: "connect", ServiceVersion: true, Ports: "top-1000", Wordlist: BuiltinWordlist, TechRules: BuiltinTechRules, CrawlDepth: 3, DirectoryDepth: 3, Tags: "cve,vuln,vkev,kev", Severity: "medium,high,critical", HTTPTimeout: 10 * time.Second, StageTimeout: 30 * time.Minute, MaxDuration: 2 * time.Hour, MaxTargets: 100, LogLevel: "info", Limits: map[string]Limit{}}
 	for _, n := range []string{"naabu", "subfinder", "dnsx", "httpx", "katana", "feroxbuster", "nuclei"} {
 		c.Limits[n] = Limit{Rate: 20, Concurrency: 5}
 	}
@@ -102,6 +110,9 @@ func Load(path string) (Config, error) {
 	v := reflect.ValueOf(&c).Elem()
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
+		if t.Field(i).Tag.Get("yaml") == "-" {
+			continue
+		}
 		key := "DISCOVERYX_" + strings.ToUpper(t.Field(i).Tag.Get("yaml"))
 		if s, ok := os.LookupEnv(key); ok {
 			field := v.Field(i)
@@ -122,6 +133,15 @@ func Load(path string) (Config, error) {
 	return c, nil
 }
 func (c Config) Validate() error {
+	if !one(c.GHRecon, "", "auto", "on", "off") {
+		return fmt.Errorf("ghrecon must be auto/on/off")
+	}
+	if c.GHRecon == "on" || c.GHRecon == "auto" {
+		if !one(c.GHReconProfile, "quick", "standard", "deep") || c.GHReconMaxQueries < 1 || c.GHReconMaxResults < 1 || c.GHReconConcurrency < 1 {
+			return fmt.Errorf("GHRecon needs a valid profile and positive query/result/concurrency limits")
+		}
+	}
+
 	if _, e := scope.New(c.Target, c.Excluded); e != nil {
 		return e
 	}

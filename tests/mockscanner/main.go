@@ -33,7 +33,7 @@ func main() {
 	}
 	name := strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
 	if has("-h") || has("--help") {
-		fmt.Println(" -h --help -version --version -config -duc -d -silent -nc -rl -o -l -a -aaaa -cname -j -t -retry -sc -title -td -ip -cdn -server -timeout -nfs -u -jc -kf -fs -cs -cos -dr -do -c -p --depth -w -s --rate-limit --scan-limit --timeout --no-state --json --dont-scan --dont-extract-links -x -list -rate -top-ports -ss -sV -sV-probes -ud -tags -pt -etags -ni -dut -bs -tl -ut -tv")
+		fmt.Println(" -h --help -version --version -config -duc -d -silent -nc -rl -o -l -a -aaaa -cname -j -t -retry -sc -title -td -ip -cdn -server -timeout -nfs -u -jc -kf -fs -cs -cos -dr -do -c -p --depth -w -s --rate-limit --scan-limit --timeout --no-state --json --dont-scan --dont-extract-links -x -list -rate -top-ports -ss -sV -sV-probes -ud -tags -pt -etags -ni -dut -bs -tl -ut -tv -domain -profile -jsonl -max-queries -max-results -concurrency -timeout -verbose")
 		return
 	}
 	if has("-version") || has("--version") {
@@ -70,6 +70,48 @@ func main() {
 	}
 	if os.Getenv("MOCK_SLEEP_TOOL") == name {
 		time.Sleep(10 * time.Minute)
+	}
+	if name == "ghrecon" {
+		if barrier := os.Getenv("MOCK_GH_BARRIER"); barrier != "" {
+			_ = os.WriteFile(barrier+".github", []byte("started"), 0600)
+			limit := time.Now().Add(5 * time.Second)
+			for {
+				if _, err := os.Stat(barrier + ".katana"); err == nil {
+					break
+				}
+				if time.Now().After(limit) {
+					os.Exit(1)
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
+		if os.Getenv("MOCK_GH_SECRET_STDERR") == "1" {
+			fmt.Fprint(os.Stderr, os.Getenv("GITHUB_TOKEN"))
+		}
+		row := map[string]any{"schema_version": "1", "type": "subdomain", "value": "github.fixture.test", "confidence": 0.95, "sources": []map[string]any{{"source": "github_code_search", "repository": "example/backend", "path": "settings.yml", "url": "https://github.com/example/backend/blob/main/settings.yml", "query": "fixture.test"}}}
+		if os.Getenv("MOCK_GH_SECRET_STDERR") == "1" {
+			row["reason"] = os.Getenv("GITHUB_TOKEN")
+		}
+		b, _ := json.Marshal(row)
+		fmt.Println(string(b))
+		if os.Getenv("MOCK_FAIL_TOOL") == name {
+			os.Exit(2)
+		}
+		return
+	}
+	if name == "katana" && os.Getenv("MOCK_GH_BARRIER") != "" {
+		barrier := os.Getenv("MOCK_GH_BARRIER")
+		_ = os.WriteFile(barrier+".katana", []byte("started"), 0600)
+		limit := time.Now().Add(5 * time.Second)
+		for {
+			if _, err := os.Stat(barrier + ".github"); err == nil {
+				break
+			}
+			if time.Now().After(limit) {
+				os.Exit(1)
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
 	}
 	if has("-ut") {
 		if os.Getenv("MOCK_UPDATE_FAIL") != "" {

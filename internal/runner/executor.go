@@ -75,7 +75,7 @@ func Capture(ctx context.Context, e Executor, path string, args ...string) (stri
 func Environment() []string {
 	env := []string{}
 	for _, s := range os.Environ() { // Prevent inherited custom template download and proxy settings.
-		if hasPrefixAny(s, "NUCLEI_", "GITHUB_TEMPLATE_", "GITLAB_TEMPLATE_", "AWS_TEMPLATE_", "AZURE_TEMPLATE_", "HTTP_PROXY=", "HTTPS_PROXY=", "ALL_PROXY=") {
+		if hasPrefixAny(s, "GITHUB_TOKEN=", "DISCOVERYX_GITHUB_TOKEN=", "NUCLEI_", "GITHUB_TEMPLATE_", "GITLAB_TEMPLATE_", "AWS_TEMPLATE_", "AZURE_TEMPLATE_", "HTTP_PROXY=", "HTTPS_PROXY=", "ALL_PROXY=") {
 			continue
 		}
 		env = append(env, s)

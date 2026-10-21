@@ -14,7 +14,7 @@ import (
 func TestHTMLIsOfflineAndEscapesCollectedContent(t *testing.T) {
 	dir := t.TempDir()
 	attack := `</script><img src=x onerror="window.reportXSS=true"><script>alert(1)</script>`
-	s := Snapshot{Target: attack, State: "Partial", Data: model.Data{WebServices: []model.WebService{{URL: "javascript:alert(1)", Title: attack}}, Vulnerabilities: []model.Vulnerability{{Name: attack}}}, Commands: []model.Command{{Executable: "C:\\한글 경로\\httpx.exe", Args: []string{"-u", attack}, Platform: "windows"}}}
+	s := Snapshot{Target: attack, State: "Partial", Data: model.Data{GitHub: []model.GitHubFinding{{SchemaVersion: "1", Type: "repository", Value: attack, Sources: []map[string]any{{"path": attack, "url": "javascript:alert(1)"}}}}, WebServices: []model.WebService{{URL: "javascript:alert(1)", Title: attack}}, Vulnerabilities: []model.Vulnerability{{Name: attack}}}, Commands: []model.Command{{Executable: "C:\\한글 경로\\httpx.exe", Args: []string{"-u", attack}, Platform: "windows"}}}
 	if err := Write(dir, s); err != nil {
 		t.Fatal(err)
 	}

@@ -36,3 +36,24 @@ func TestPlans(t *testing.T) {
 		t.Fatal(p)
 	}
 }
+
+func TestGitHubPlanPosition(t *testing.T) {
+	for _, webOnly := range []bool{true, false} {
+		c := config.Default()
+		c.GHRecon = "on"
+		c.WebOnly = webOnly
+		plan := Plan(c)
+		found := false
+		for i, stage := range plan {
+			if stage.Name == "ghrecon" {
+				found = true
+				if i == 0 || plan[i-1].Name != "httpx" || plan[i+1].Name != "katana" {
+					t.Fatal(plan)
+				}
+			}
+		}
+		if !found {
+			t.Fatal("GitHub stage absent")
+		}
+	}
+}

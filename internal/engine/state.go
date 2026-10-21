@@ -34,6 +34,7 @@ type Checkpoint struct {
 	ScannedIPs []string   `json:"scanned_ips"`
 }
 type Summary struct {
+	GitHubFindings int                `json:"github_findings"`
 	Target         string             `json:"target_domain"`
 	Duration       time.Duration      `json:"execution_duration_ns"`
 	Subdomains     int                `json:"discovered_subdomains"`

@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/naroSEC/DiscoveryX/internal/config"
 	"github.com/naroSEC/DiscoveryX/internal/model"
@@ -21,6 +22,7 @@ type Invocation struct {
 	Output string
 }
 type Input struct {
+	GitHubToken     string
 	PortHosts       map[string]string
 	Help            string
 	Config          config.Config
@@ -57,24 +59,24 @@ func (a Adapter) RequiredInputs() []string { return a.inputs }
 func (a Adapter) Outputs() []string        { return []string{a.name + ".jsonl"} }
 func (a Adapter) Version(ctx context.Context, e runner.Executor, p string) (string, error) {
 	f := "-version"
-	if a.name == "feroxbuster" {
+	if a.name == "feroxbuster" || a.name == "ghrecon" {
 		f = "--version"
 	}
-	if a.name == "feroxbuster" {
+	if a.name == "feroxbuster" || a.name == "ghrecon" {
 		return runner.Probe(ctx, e, p, f)
 	}
 	return runner.Capture(ctx, e, p, f, "-duc")
 }
 func (a Adapter) Validate(ctx context.Context, e runner.Executor, p string) error {
 	f := "-h"
-	if a.name == "feroxbuster" {
+	if a.name == "feroxbuster" || a.name == "ghrecon" {
 		f = "--help"
 	}
 	s, err := runner.Probe(ctx, e, p, f)
 	if err != nil {
 		return err
 	}
-	if a.name != "feroxbuster" && !Supports(s, "-duc") {
+	if a.name != "feroxbuster" && a.name != "ghrecon" && !Supports(s, "-duc") {
 		return fmt.Errorf("%s lacks -duc; cannot prevent automatic update checks", a.name)
 	}
 	return nil
@@ -83,7 +85,7 @@ func (a Adapter) BuildArgs(in Input) ([]Invocation, error)            { return a
 func (a Adapter) Parse(r io.Reader, d *model.Data, in Input) []string { return a.parse(r, d, in) }
 func (a Adapter) Run(ctx context.Context, e runner.Executor, p string, inv Invocation, in Input) error {
 	hf := "-h"
-	if a.name == "feroxbuster" {
+	if a.name == "feroxbuster" || a.name == "ghrecon" {
 		hf = "--help"
 	}
 	help, err := runner.Probe(ctx, e, p, hf)
@@ -91,7 +93,11 @@ func (a Adapter) Run(ctx context.Context, e runner.Executor, p string, inv Invoc
 		return err
 	}
 	for _, s := range inv.Args {
-		if strings.HasPrefix(s, "-") && !Supports(help, s) {
+		flag := s
+		if a.name == "ghrecon" {
+			flag = "-" + strings.TrimLeft(s, "-")
+		}
+		if strings.HasPrefix(s, "-") && !Supports(help, flag) {
 			return fmt.Errorf("%s installed binary does not support required flag %s", a.name, s)
 		}
 	}
@@ -126,13 +132,25 @@ func (a Adapter) Run(ctx context.Context, e runner.Executor, p string, inv Invoc
 			}
 		}
 	}
+	if a.name == "ghrecon" {
+		result, openErr := os.OpenFile(inv.Output, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		if openErr != nil {
+			return openErr
+		}
+		defer result.Close()
+		stdout := &runner.SecretWriter{Writer: result, Secret: in.GitHubToken}
+		stderr := &runner.SecretWriter{Writer: log, Secret: in.GitHubToken}
+		env = append(env, "GITHUB_TOKEN="+in.GitHubToken)
+		runErr := e.Run(ctx, runner.Request{Executable: p, Args: inv.Args, Dir: work, Env: env, Stdout: stdout, Stderr: stderr})
+		return errors.Join(runErr, stdout.Flush(), stderr.Flush())
+	}
 	return e.Run(ctx, runner.Request{Executable: p, Args: inv.Args, Dir: work, Env: env, Stdout: out, Stderr: log})
 }
 func Supports(help, flag string) bool {
 	return regexp.MustCompile(`(?m)(^|[\s,])` + regexp.QuoteMeta(flag) + `([\s,=]|$)`).MatchString(help)
 }
 func Registry() map[string]Tool {
-	return map[string]Tool{"naabu": Naabu(), "subfinder": Subfinder(), "dnsx": DNSX(), "httpx": HTTPX(), "katana": Katana(), "feroxbuster": Feroxbuster(), "nuclei": Nuclei()}
+	return map[string]Tool{"naabu": Naabu(), "subfinder": Subfinder(), "dnsx": DNSX(), "httpx": HTTPX(), "katana": Katana(), "feroxbuster": Feroxbuster(), "nuclei": Nuclei(), "ghrecon": GHRecon()}
 }
 func raw(in Input, name string) string { return filepath.Join(in.RunDir, "raw", name+".jsonl") }
 func num(i int) string                 { return strconv.Itoa(i) }

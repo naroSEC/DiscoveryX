@@ -28,13 +28,15 @@ flowchart LR
     A[Naabu<br/>포트 스캔] --> B[Subfinder<br/>서브도메인 수집]
     B --> C[Dnsx<br/>DNS 확인]
     C --> D[Httpx<br/>웹 서비스 식별]
+    D --> H[GHRecon<br/>GitHub 수집]
     D --> E[Katana<br/>웹 크롤링]
     E --> F[Feroxbuster<br/>디렉터리 탐색]
     F --> G[Nuclei<br/>취약점 점검]
 ```
 
-각 단계는 순차적으로 실행합니다. 포트 스캔을 마지막으로 옮기거나, 처음과 마지막에 나눠 실행할 수도 있습니다.
+기존 웹 점검 단계는 순차적으로 실행합니다. GitHub 토큰이 있으면 Httpx 이후 GHRecon을 별도 작업으로 시작해 Katana → Feroxbuster → Nuclei 흐름과 병행합니다. 포트 스캔을 마지막으로 옮기거나, 처음과 마지막에 나눠 실행할 수도 있습니다.
 
+- **GitHub에서도 단서를 찾습니다.** GHRecon이 찾은 저장소·도메인·URL·클라우드 자산을 출처와 함께 HTML에서 확인합니다.
 - **필요한 단계만 선택합니다.** 수집 단계를 건너뛰거나 웹 점검만 실행할 수 있습니다.
 - **범위를 지킵니다.** 입력한 도메인과 하위 도메인을 다음 단계로 넘기고, 외부 링크와 CNAME은 별도로 기록합니다.
 - **원본을 남깁니다.** 도구별 출력과 정규화한 결과를 따로 보관해 탐지 근거를 확인할 수 있습니다.
@@ -140,6 +142,26 @@ Naabu·Subfinder·Dnsx를 건너뛰고 **Httpx → Katana → Feroxbuster → Nu
 
 입력 URL의 스킴·포트·경로·쿼리는 유지합니다. 도메인만 입력하면 HTTPS를 먼저 확인한 뒤 필요할 때 HTTP를 확인합니다. Httpx가 실패해도 원래 URL로 나머지 웹 단계를 진행합니다.
 
+### GitHub 수집 함께 실행
+
+토큰을 전달하면 기본 `ghrecon: auto` 설정에서 GitHub 수집을 함께 실행합니다. `https://www.example.com`을 입력하면 GHRecon에는 `--domain example.com`을 전달합니다. `api.example.co.kr`처럼 접미사가 여러 단계인 도메인도 구분합니다.
+
+```powershell
+discoveryx -u https://www.example.com --github-token "github_pat_..."
+
+# 토큰 파일 사용
+discoveryx -u https://www.example.com --github-token-file "C:\보안 설정\github.token"
+
+# GitHub 수집 제외
+discoveryx -u https://www.example.com --ghrecon off
+```
+
+`DISCOVERYX_GITHUB_TOKEN` 또는 `GITHUB_TOKEN` 환경 변수도 사용할 수 있습니다. 직접 입력한 토큰은 쉘 이력에 남을 수 있으므로 평소에는 토큰 파일이나 환경 변수를 권장합니다. DiscoveryX는 토큰을 GHRecon의 환경 변수로 전달하고, 저장하는 설정·명령어·로그·HTML에서는 값을 제외하거나 마스킹합니다.
+
+GHRecon은 Httpx 뒤에 시작하며, 기존 웹 점검이 끝나도 GitHub 수집이 진행 중이면 완료를 기다린 뒤 최종 요약을 만듭니다. 토큰이 없으면 기본적으로 기존 워크플로우만 실행합니다. `--ghrecon on`으로 명시했는데 토큰이 없으면 해당 단계의 사유를 표시합니다. Web-only 모드에서도 같은 방식으로 동작합니다.
+
+결과는 HTML의 **GitHub 수집** 화면에서 유형별로 구분하고, 저장소·파일 경로·검색어·원본 링크를 상세 보기로 확인할 수 있습니다. GitHub에서 발견한 주소는 웹 스캐너 입력으로 자동 추가하지 않습니다.
+
 ### 중단한 작업 재개
 
 ```powershell
@@ -205,7 +227,7 @@ discoveryx templates update
 실행이 끝나면 결과 폴더의 **`report.html`을 브라우저로 열어 보세요.** 별도 서버나 인터넷 연결 없이 결과를 살펴볼 수 있습니다. 밝은 화면과 어두운 화면을 지원하고, 좁은 화면에서도 표를 가로로 넘겨 읽을 수 있습니다.
 
 - **개요:** 주요 발견 건수, 심각도 분포, 단계별 진행 상태를 한 화면에 표시합니다.
-- **결과 탐색:** 자산·포트·웹 서비스·URL·디렉터리·탐지 결과를 나눠 봅니다. 검색, 호스트·심각도 필터, 정렬과 페이지 이동을 지원합니다.
+- **결과 탐색:** 자산·포트·웹 서비스·URL·디렉터리·탐지 결과·GitHub 수집을 나눠 봅니다. 검색, 호스트·심각도 필터, 정렬과 페이지 이동을 지원합니다.
 - **상세 확인:** 개별 레코드의 JSON과 원본 근거를 확인하고, 현재 필터에 맞는 결과를 JSON으로 내보낼 수 있습니다. 탐지 결과의 중복 표시도 전환할 수 있습니다.
 - **명령어 기록:** DiscoveryX 실행 명령과 각 스캔 단계에서 호출한 도구의 경로·인자·실행 시간·상태를 표시합니다. 사전 점검과 템플릿 설치·목록 조회는 따로 구분하고, 명령어 복사와 stdout/stderr 로그 확인을 제공합니다.
 
@@ -235,7 +257,7 @@ Nuclei 탐지는 검토가 필요한 점검 결과입니다. 중복 이벤트는
 
 ## 현재 지원 범위
 
-Windows 빌드, 공식 도구 7개의 설치·버전 확인, 모의 스캐너 기반 자동화 테스트를 확인했습니다. 실제 Httpx·Katana·Feroxbuster도 루프백 서버에서 테스트했습니다.
+Windows 빌드, 공식 도구 8개의 설치·버전 확인, 모의 스캐너 기반 자동화 테스트를 확인했습니다. 실제 Httpx·Katana·Feroxbuster도 루프백 서버에서 테스트했습니다.
 
 현재 알아둘 제약은 다음과 같습니다.
 

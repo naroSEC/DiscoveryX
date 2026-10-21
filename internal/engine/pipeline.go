@@ -12,6 +12,9 @@ func Plan(c config.Config) []Stage {
 	s := []Stage{}
 	if c.WebOnly {
 		s = append(s, Stage{Name: "httpx", Tool: "httpx"})
+		if c.GHRecon == "on" {
+			s = append(s, Stage{Name: "ghrecon", Tool: "ghrecon"})
+		}
 		if c.Crawl == "on" {
 			s = append(s, Stage{Name: "katana", Tool: "katana"})
 		}
@@ -30,6 +33,9 @@ func Plan(c config.Config) []Stage {
 		s = append(s, Stage{Name: "subfinder", Tool: "subfinder"})
 	}
 	s = append(s, Stage{Name: "dnsx", Tool: "dnsx"}, Stage{Name: "httpx", Tool: "httpx"})
+	if c.GHRecon == "on" {
+		s = append(s, Stage{Name: "ghrecon", Tool: "ghrecon"})
+	}
 	if c.Crawl == "on" {
 		s = append(s, Stage{Name: "katana", Tool: "katana"})
 	}

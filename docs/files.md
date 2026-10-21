@@ -91,3 +91,19 @@
 
 - `wordlists/resources.go`: 기본 사전 내장 리소스.
 - `internal/engine/wordlist_test.go`: 내장·사용자 사전 선택과 재개 검증.
+
+## GHRecon 통합 파일
+
+- `internal/config/github.go`
+- `internal/config/github_test.go`
+- `internal/engine/github.go`
+- `internal/engine/github_test.go`
+- `internal/model/github.go`
+- `internal/tools/ghrecon.go`
+- `internal/tools/ghrecon_test.go`
+- `internal/tools/ghrecon_integration_test.go`
+- `internal/runner/secret.go`
+- `internal/runner/secret_test.go`
+- `docs/ghrecon-help.txt`
+
+- `internal/cli/github_test.go`: CLI 입력과 명령어 마스킹 통합 검증.

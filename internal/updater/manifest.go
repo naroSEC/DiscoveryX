@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-var Repositories = map[string]string{"naabu": "projectdiscovery/naabu", "subfinder": "projectdiscovery/subfinder", "dnsx": "projectdiscovery/dnsx", "httpx": "projectdiscovery/httpx", "katana": "projectdiscovery/katana", "feroxbuster": "epi052/feroxbuster", "nuclei": "projectdiscovery/nuclei"}
-var Names = []string{"naabu", "subfinder", "dnsx", "httpx", "katana", "feroxbuster", "nuclei"}
+var Repositories = map[string]string{"naabu": "projectdiscovery/naabu", "subfinder": "projectdiscovery/subfinder", "dnsx": "projectdiscovery/dnsx", "httpx": "projectdiscovery/httpx", "katana": "projectdiscovery/katana", "feroxbuster": "epi052/feroxbuster", "nuclei": "projectdiscovery/nuclei", "ghrecon": "naroSEC/GHRecon"}
+var Names = []string{"naabu", "subfinder", "dnsx", "httpx", "katana", "feroxbuster", "nuclei", "ghrecon"}
 
 type Installation struct {
 	Name         string    `json:"tool_name"`

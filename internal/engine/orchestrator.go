@@ -28,6 +28,10 @@ type Installer interface {
 	Ensure(context.Context, string, bool) (updater.Installation, error)
 }
 type Engine struct {
+	GitHubToken  string
+	githubBranch *githubBranch
+	saveHook     func() error
+
 	ResolveHost func(context.Context, string) ([]string, error)
 	Config      config.Config
 	Dir         string
@@ -41,9 +45,22 @@ type Engine struct {
 }
 
 func New(c config.Config, out io.Writer) *Engine {
+	out = &runner.LockedWriter{Writer: out}
 	return &Engine{Config: c, Out: out, Registry: tools.Registry(), Executor: runner.OSExecutor{}, Manager: updater.New(c.ToolsDir, out), ResolveHost: net.DefaultResolver.LookupHost}
 }
 func (e *Engine) Initialize() error {
+	token, tokenErr := e.Config.ResolveGitHubToken()
+	if tokenErr != nil {
+		return tokenErr
+	}
+	e.GitHubToken = token
+	if e.Config.GHRecon == "auto" {
+		e.Config.GHRecon = "off"
+		if token != "" {
+			e.Config.GHRecon = "on"
+		}
+	}
+
 	if err := e.Config.Validate(); err != nil {
 		return err
 	}
@@ -111,12 +128,27 @@ func Resume(dir string, out io.Writer) (*Engine, error) {
 		}
 	}
 	e := New(meta.Config, out)
+	token, tokenErr := meta.Config.ResolveGitHubToken()
+	if tokenErr != nil {
+		return nil, tokenErr
+	}
+	e.GitHubToken = token
 	e.Dir = abs
 	e.Meta = meta
 	e.State = state
 	return e, nil
 }
 func (e *Engine) save() error {
+	if e.saveHook != nil {
+		return e.saveHook()
+	}
+	e.collectGitHub()
+	if len(e.State.Commands) > 0 {
+		if err := storage.JSON(filepath.Join(e.Dir, "logs", "commands.json"), e.State.Commands); err != nil {
+			return err
+		}
+	}
+
 	e.Meta.Updated = time.Now().UTC()
 	if err := storage.JSON(filepath.Join(e.Dir, "metadata.json"), e.Meta); err != nil {
 		return err
@@ -149,7 +181,7 @@ func (e *Engine) Run(ctx context.Context, resume bool) (err error) {
 		return err
 	}
 	defer errs.Close()
-	e.log = io.MultiWriter(e.Out, log)
+	e.log = &runner.LockedWriter{Writer: io.MultiWriter(e.Out, log)}
 	if e.Config.LogLevel == "error" {
 		e.log = log
 	}
@@ -209,7 +241,7 @@ func (e *Engine) Run(ctx context.Context, resume bool) (err error) {
 		} else {
 			e.Meta.State = "Completed"
 			for _, s := range e.State.Stages {
-				if s.Status == "Failed" || s.Status == "Skipped" {
+				if s.Status == "Failed" || s.Status == "Skipped" || s.Status == "Partial" || s.Status == "Interrupted" {
 					e.Meta.State = "Partial"
 				}
 			}
@@ -219,6 +251,17 @@ func (e *Engine) Run(ctx context.Context, resume bool) (err error) {
 		}
 		if se := e.writeResults(); se != nil {
 			err = errors.Join(err, se)
+		}
+	}()
+	defer func() {
+		if e.githubBranch != nil {
+			select {
+			case <-e.githubBranch.done:
+			default:
+				cancel()
+				<-e.githubBranch.done
+			}
+			e.collectGitHub()
 		}
 	}()
 	host, _ := scope.Host(e.Config.Target)
@@ -239,6 +282,12 @@ func (e *Engine) Run(ctx context.Context, resume bool) (err error) {
 	for i, stage := range plan {
 		if ctx.Err() != nil {
 			return ctx.Err()
+		}
+		if stage.Tool == "ghrecon" {
+			if err = e.startGitHub(ctx, i, resume); err != nil {
+				return err
+			}
+			continue
 		}
 		st := &e.State.Stages[i]
 		if reuse && st.Status == "Completed" {
@@ -304,7 +353,11 @@ func (e *Engine) Run(ctx context.Context, resume bool) (err error) {
 			return err
 		}
 	}
-	return nil
+	if e.githubBranch != nil {
+		<-e.githubBranch.done
+		e.collectGitHub()
+	}
+	return ctx.Err()
 }
 func (e *Engine) verify(files map[string]string) bool {
 	if len(files) == 0 {
@@ -721,6 +774,7 @@ func probeWeb(ctx context.Context, targets []string, client *http.Client, v scop
 	return "", fmt.Errorf("web-only preflight: HTTPS and HTTP unavailable")
 }
 func (e *Engine) writeResults() error {
+	e.collectGitHub()
 	d := &e.State.Data
 	var urls []string
 	for _, w := range d.WebServices {
@@ -739,7 +793,7 @@ func (e *Engine) writeResults() error {
 	items := []struct {
 		name  string
 		value any
-	}{{"assets", d.Assets}, {"ports", d.Ports}, {"webservices", d.WebServices}, {"urls", d.Endpoints}, {"vulnerabilities", d.Vulnerabilities}, {"out-of-scope", d.External}, {"invalid-hosts", d.InvalidHosts}}
+	}{{"github-findings", d.GitHub}, {"assets", d.Assets}, {"ports", d.Ports}, {"webservices", d.WebServices}, {"urls", d.Endpoints}, {"vulnerabilities", d.Vulnerabilities}, {"out-of-scope", d.External}, {"invalid-hosts", d.InvalidHosts}}
 	for _, it := range items {
 		if er := storage.JSON(filepath.Join(e.Dir, "normalized", it.name+".json"), it.value); er != nil {
 			return er
@@ -752,7 +806,7 @@ func (e *Engine) writeResults() error {
 	return reporting.Write(e.Dir, reporting.Snapshot{Target: e.Config.Target, State: e.Meta.State, Started: e.Meta.Started, Updated: e.Meta.Updated, Duration: e.State.ActiveDuration, Output: e.Dir, Platform: e.Meta.Platform, Invocation: e.Meta.Command, Stages: e.State.Stages, Data: e.State.Data, Commands: e.State.Commands, Tools: e.Meta.Tools})
 }
 func (e *Engine) Summary() Summary {
-	s := Summary{Target: e.Config.Target, Duration: e.State.ActiveDuration, WebServices: len(e.State.Data.WebServices), Ports: len(e.State.Data.Ports), Findings: len(e.State.Data.Vulnerabilities), Stages: e.State.Stages, Output: e.Dir, State: e.Meta.State}
+	s := Summary{GitHubFindings: len(e.State.Data.GitHub), Target: e.Config.Target, Duration: e.State.ActiveDuration, WebServices: len(e.State.Data.WebServices), Ports: len(e.State.Data.Ports), Findings: len(e.State.Data.Vulnerabilities), Stages: e.State.Stages, Output: e.Dir, State: e.Meta.State}
 	host, _ := scope.Host(e.Config.Target)
 	for _, a := range e.State.Data.Assets {
 		if a.Hostname != host {
@@ -779,6 +833,7 @@ func (e *Engine) Summary() Summary {
 }
 func (e *Engine) PrintSummary() {
 	s := e.Summary()
+	fmt.Fprintf(e.Out, "GitHub findings: %d\n", len(e.State.Data.GitHub))
 	if _, err := os.Stat(filepath.Join(e.Dir, "report.html")); err == nil {
 		fmt.Fprintf(e.Out, "HTML report: %s\n", filepath.Join(e.Dir, "report.html"))
 	}

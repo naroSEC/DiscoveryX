@@ -60,3 +60,12 @@ CLI 단축/긴 옵션과 first/last/both/off 계획, web-only 우선순위, 단�
 - 소스 저장소와 별도 사전 파일이 없는 작업 폴더에서 내장 기본값과 사전 읽기를 검사합니다.
 - 모의 스캐너 통합 테스트로 내장 사전의 입력 스냅샷, 실제 Feroxbuster `-w` 인자, 사용자 사전 우선 적용, 없는 사용자 사전의 건너뜀 처리, 완료 후 재개 시 재실행 방지를 검사합니다.
 - 별도 `GOBIN`에 `go install ./cmd/discoveryx`로 설치한 뒤, 소스·사전 파일이 없는 한글·공백 작업 폴더에서 `--version`과 `doctor`를 실행했습니다. v0.3.1과 `Wordlist: builtin (<nil>)`을 확인했습니다. 외부 도구 경로는 빈 검증 폴더로 지정해 스캐너 설치나 외부 대상 요청을 하지 않았습니다.
+
+## GHRecon 통합 검증
+
+- 루트 도메인 추출: www, 경로·포트·쿼리, co.kr 및 private suffix인 github.io, IP·단일 라벨·공개 접미사 거부를 검사했습니다.
+- 모의 실행 파일로 GHRecon·Katana가 서로의 시작을 기다리도록 해 순차 실행으로는 통과하지 못하는 동시 실행 테스트를 수행했습니다. 부분 완료 이후 웹 점검 지속, 독립 재개·웹 체크포인트 재시도, Context 취소 시 작업 종료, GHRecon 자체 시간 초과 후 웹 결과 유지, GitHub 작업을 기다리는 중 전체 시간 초과가 오류로 반환되는지도 확인했습니다.
+- 토큰 소스 우선순위와 CLI 기록 마스킹, 분할 Write 경계의 토큰 마스킹을 검사했습니다. 실행 폴더의 모든 파일을 읽어 테스트 토큰이 설정·상태·원본·로그·HTML에 남지 않았는지 확인했습니다.
+- 공식 GHRecon v0.1.1의 설치·SHA256·도움말·버전을 확인했습니다. 선택 테스트 `TestInstalledGHReconOnLoopback`에서는 실제 바이너리와 로컬 모의 GitHub API를 연결해 저장소 결과 1개, 로컬 API 요청 2개, 토큰 전달 및 출처 파싱을 확인했습니다. 실제 GitHub 코드 검색이나 외부 대상 스캔은 수행하지 않았습니다.
+- HTML은 DEMO 데이터를 사용해 GitHub 유형 필터, 출처 상세 링크와 JSON, 필터된 JSON 내보내기를 브라우저에서 확인했습니다. 실제 스캔 결과로 표시하지 않습니다.
+- `go test -race ./internal/engine -run '^TestGitHub' -count=1`은 기존 Windows C 컴파일러 환경의 cgo 빌드 오류로 실행하지 못했습니다. race detector 통과로 표시하지 않습니다.

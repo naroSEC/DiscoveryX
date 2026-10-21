@@ -165,7 +165,7 @@ var versionRE = regexp.MustCompile(`(?i)\bv?(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)
 
 func (m *Manager) Check(ctx context.Context, exe, name string) (string, error) {
 	helpFlag, verFlag := "-h", "-version"
-	if name == "feroxbuster" {
+	if name == "feroxbuster" || name == "ghrecon" {
 		helpFlag = "--help"
 		verFlag = "--version"
 	}
@@ -174,7 +174,7 @@ func (m *Manager) Check(ctx context.Context, exe, name string) (string, error) {
 		return "", e
 	}
 	args := []string{verFlag}
-	if name != "feroxbuster" {
+	if name != "feroxbuster" && name != "ghrecon" {
 		if !regexp.MustCompile(`(^|[\s,])-duc([\s,]|$)`).MatchString(help) {
 			return "", fmt.Errorf("%s lacks required -duc; refusing unmanaged update checks", name)
 		}
@@ -262,7 +262,7 @@ func Extract(asset, exe string, b []byte) ([]byte, error) {
 				return nil, e
 			}
 		}
-	case strings.HasSuffix(asset, ".exe"):
+	case strings.HasSuffix(asset, ".exe"), exe == "ghrecon" && (strings.HasPrefix(asset, "ghrecon-linux-") || strings.HasPrefix(asset, "ghrecon-darwin-")):
 		result = b
 	default:
 		return nil, fmt.Errorf("unsupported archive %s", asset)

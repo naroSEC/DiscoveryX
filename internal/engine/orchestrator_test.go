@@ -21,6 +21,7 @@ func fixture(t *testing.T, exe string) *Engine {
 	t.Helper()
 	dir := t.TempDir()
 	c := config.Default()
+	c.GHRecon = "off"
 	c.Target = "fixture.test"
 	c.PortScan = "off"
 	c.Output = filepath.Join(dir, "결과 공백")
@@ -353,6 +354,7 @@ func TestInstalledWebOnlyFingerprintOnLoopback(t *testing.T) {
 	defer server.Close()
 	dir := t.TempDir()
 	c := config.Default()
+	c.GHRecon = "off"
 	c.Target = server.URL + "/app?x=1"
 	c.WebOnly = true
 	c.Crawl = "off"

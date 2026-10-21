@@ -38,3 +38,10 @@ limits:
   katana: {rate: 20, concurrency: 5}
   feroxbuster: {rate: 0, concurrency: 0}
   nuclei: {rate: 0, concurrency: 0}
+
+# auto runs alongside the web pipeline when a GitHub token is supplied.
+ghrecon: auto
+ghrecon_profile: standard
+ghrecon_max_queries: 50
+ghrecon_max_results: 100
+ghrecon_concurrency: 4

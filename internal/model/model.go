@@ -59,6 +59,7 @@ type Vulnerability struct {
 	DuplicateOf     string   `json:"duplicate_of,omitempty"`
 }
 type Data struct {
+	GitHub          []GitHubFinding `json:"github_findings"`
 	Assets          []Asset         `json:"assets"`
 	Ports           []Port          `json:"ports"`
 	WebServices     []WebService    `json:"webservices"`

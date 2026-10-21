@@ -57,6 +57,36 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 `--web-only`에서는 Naabu/Subfinder/Dnsx를 건너뛰고 Httpx → Katana → Feroxbuster → Nuclei 순서로 진행합니다. Httpx는 단일 입력 URL의 상태·제목·기술 스택을 수집하며 디렉터리 확장자 선택에 전달합니다. `-nfs`로 입력 스킴을 유지하고 리다이렉트를 따라가지 않습니다. 세 웹 단계의 비활성화 옵션도 적용합니다. 완전한 URL은 스킴·포트·경로·쿼리를 유지하며, 도메인만 주면 Go HTTP 클라이언트가 HTTPS와 HTTP 순서로 HEAD 요청을 확인합니다. Httpx 실패 시에도 원래 입력 URL로 다음 단계를 진행합니다.
 
+## GHRecon 병행 실행
+
+기본 `ghrecon: auto`는 토큰이 있을 때만 GitHub 수집 단계를 활성화합니다. `--ghrecon on/off`로 명시할 수 있습니다. 토큰 입력은 `--github-token <값>` 또는 `--github-token-file <경로>` 중 하나를 사용하며, 없으면 `DISCOVERYX_GITHUB_TOKEN`, `GITHUB_TOKEN` 순서로 읽습니다. 토큰 파일에는 토큰 한 개를 적습니다. 토큰은 YAML이나 저장된 실행 설정에 포함하지 않습니다.
+
+```powershell
+.\discoveryx.exe -u https://www.example.com --github-token-file "C:\보안 설정\github.token"
+.\discoveryx.exe -u https://www.example.com --web-only --github-token "github_pat_..."
+.\discoveryx.exe -u example.com --ghrecon off
+```
+
+직접 입력한 토큰은 사용자의 쉘 이력에는 남을 수 있습니다. DiscoveryX는 GHRecon 실행 인자에 토큰을 넣지 않고 자식 프로세스의 `GITHUB_TOKEN`으로 전달합니다. 다른 스캐너에는 GitHub 토큰을 전달하지 않습니다. 기록되는 최초 CLI 명령은 토큰을 마스킹하고, GHRecon의 JSONL·stderr도 실행 중 사용하는 인증 토큰을 마스킹합니다.
+
+루트 도메인은 Public Suffix List 기준으로 추출합니다. `www.example.com`은 `example.com`, `api.example.co.kr`은 `example.co.kr`, `api.team.github.io`는 `team.github.io`입니다. IP·단일 라벨 호스트·공개 접미사 자체는 GHRecon 대상으로 사용하지 않습니다. 이 변환은 GitHub 검색어에만 적용되며 기존 스캐너의 탐색 범위를 변경하지 않습니다.
+
+Httpx가 끝나면 GHRecon을 시작하고 기존 Katana → Feroxbuster → Nuclei 흐름을 이어갑니다. 크롤링을 끄더라도 GHRecon은 뒤의 웹 점검과 병행할 수 있습니다. 웹 단계가 모두 끝나면 GHRecon도 종료될 때까지 기다립니다. 각 작업은 단계 시간 제한과 전체 실행 취소를 공유하며, Ctrl+C에서는 두 작업을 종료하고 상태를 보존합니다.
+
+GHRecon 기본 설정은 `ghrecon_profile: standard`, `ghrecon_max_queries: 50`, `ghrecon_max_results: 100`, `ghrecon_concurrency: 4`입니다. 각각 `--ghrecon-profile`, `--ghrecon-max-queries`, `--ghrecon-max-results`, `--ghrecon-concurrency`로 덮어쓸 수 있습니다. API 요청 Timeout은 `--http-timeout`을 사용합니다. GitHub rate limit에 따른 대기와 재시도는 GHRecon이 관리하며 전체·단계 실행 시간 제한이 적용됩니다.
+
+GHRecon의 `--verbose` 로그는 별도 stderr 파일에 보관해 부분 실패 원인을 확인할 수 있습니다. 원본은 `raw/ghrecon.jsonl`, 정규화 결과는 `normalized/github-findings.json`, 독립 실행 상태는 `logs/ghrecon-state.json`에 저장합니다. HTML의 GitHub 수집 화면에서 저장소·도메인·URL·클라우드 자산 등 유형으로 필터링하고 출처 저장소·파일·검색어·원본 링크를 확인합니다. 결과는 기존 웹 점검 입력에 자동 합치지 않습니다.
+
+GHRecon 종료 코드 2는 부분 완료로 표시하고 성공적으로 받은 결과를 보존합니다. 웹 점검은 계속 실행합니다. 재개 시 완료된 GitHub 작업은 원본과 독립 체크포인트의 해시를 검증해 재사용하므로 웹 단계가 재시도되어도 반복하지 않습니다. GHRecon을 다시 실행해야 한다면 토큰 파일·CLI 옵션·환경 변수 중 하나로 토큰을 다시 전달하세요.
+
+```powershell
+.\discoveryx.exe resume --run "runs\기존실행폴더" --github-token-file "C:\보안 설정\github.token"
+.\discoveryx.exe tools install --tool ghrecon
+.\discoveryx.exe tools update --tool ghrecon
+```
+
+GHRecon은 공식 GitHub Releases 바이너리로 설치하고, 일반 스캔 중 엔진 자체 업데이트를 실행하지 않습니다. JSONL은 스키마 v1을 파싱하고 알 수 없는 부가 필드는 무시합니다. 지원하지 않는 스키마와 비정상 행은 경고를 남기며, 완전한 성공으로 표시하지 않습니다.
+
 ## 탐색 범위와 부하
 
 호스트 경계로 비교하므로 `api.example.com`은 포함하고 `example.com.attacker.test`는 제외합니다. `--exclude`로 특정 도메인과 그 하위 호스트를 탐색에서 뺄 수 있습니다. CNAME, CDN, 외부 링크가 발견되어도 입력한 대상 범위를 넓히지 않습니다. 외부 결과는 별도로 저장하고 다음 단계 입력을 만들 때 다시 검사합니다.
@@ -65,7 +95,7 @@ go build -o discoveryx.exe ./cmd/discoveryx
 
 Katana는 입력 FQDN의 정규식과 제외 범위, `-fs fqdn`, 리다이렉트 비활성화를 사용합니다. Httpx도 리다이렉트 추적 옵션을 켜지 않습니다. Feroxbuster는 대상별 순차 실행과 깊이 제한을 유지하고, 링크 추출을 끄고 사전 기반 재귀 탐색을 수행합니다. 요청률·스레드·동시 디렉터리 수는 설치된 도구의 기본값을 사용합니다. 필요하면 `--feroxbuster-rate`, `--feroxbuster-concurrency`, `--feroxbuster-scan-limit`로 지정할 수 있습니다. 기존 Feroxbuster 전역/실행 파일 옆 설정이 있으면 범위와 리다이렉트 정책이 섞일 수 있어 해당 단계를 중단합니다.
 
-하나의 DiscoveryX 실행에서 한 번에 하나의 스캐너 프로세스만 실행합니다. 요청률과 동시성은 도구별 설정을 사용합니다. Feroxbuster의 rate limit은 디렉터리별로 적용되므로 동시 디렉터리 수에 따라 전체 요청률이 달라집니다. 대상 목록 기본 상한은 100개입니다. 실행 디렉터리·도구 디렉터리·템플릿 관리에는 OS 파일 잠금을 사용하므로 동일 도구 경로의 스캔 중 업데이트를 막고, 프로세스가 종료되면 재시작 후에도 잠금이 자동 해제됩니다.
+기존 스캐너는 한 번에 하나씩 실행하며 GHRecon만 Httpx 이후 별도 작업으로 병행합니다. 동시에 실행되는 스캐너는 GHRecon과 기존 스캐너 각 하나씩, 최대 두 개입니다. 도구 설치는 Manifest 충돌을 방지하도록 직렬화합니다. 요청률과 동시성은 도구별 설정을 사용합니다. Feroxbuster의 rate limit은 디렉터리별로 적용되므로 동시 디렉터리 수에 따라 전체 요청률이 달라집니다. 대상 목록 기본 상한은 100개입니다. 실행 디렉터리·도구 디렉터리·템플릿 관리에는 OS 파일 잠금을 사용하므로 동일 도구 경로의 스캔 중 업데이트를 막고, 프로세스가 종료되면 재시작 후에도 잠금이 자동 해제됩니다.
 
 ## 설정
 
@@ -119,7 +149,7 @@ Nuclei 스캔은 설치된 템플릿을 로컬에서 필터링하고 복사본�
 - `status.json`: Pending/Running/Completed/Skipped/Failed, 소요 시간, 레코드 수, 완료 출력의 SHA256.
 - `inputs/`: 범위, 정제 호스트, `web-urls.txt`, 스캐너별 독립 설정, 사전/룰/템플릿 스냅샷.
 - `raw/`: 스캐너 원본 JSONL(Subfinder는 TXT), 대상별 Feroxbuster JSONL, stdout/stderr 로그.
-- `normalized/`: assets, ports, webservices, urls, vulnerabilities, invalid-hosts, out-of-scope JSON과 단계 체크포인트.
+- `normalized/`: github-findings, assets, ports, webservices, urls, vulnerabilities, invalid-hosts, out-of-scope JSON과 단계 체크포인트.
 - `logs/`: execution.log, errors.log.
 - `summary.json`: 개수, 실행 시간, 단계별 결과와 출력 디렉터리.
 - `report.html`: 데이터와 화면 리소스를 포함한 단일 HTML 리포트.
@@ -152,7 +182,7 @@ Ctrl+C는 context를 취소하며 Windows Job Object 또는 Unix 프로세스 �
 
 ## 구조와 확장
 
-`internal/cli`, `config`, `runner`, `tools`, `updater`, `engine`, `scope`, `model`, `parser`, `storage`, `reporting`으로 책임을 분리했습니다. 도구는 `Name/Version/Validate/BuildArgs/Run/Parse/RequiredInputs/Outputs` 인터페이스를 구현합니다. `Registry()`에 어댑터를 등록하고 `engine.Plan()`에 단계 설명을 추가해 확장할 수 있습니다. 현재 입력 연결은 호스트/웹 서비스/포트/템플릿 유형을 중심으로 구현되어 있으며, GitHub/Cloud처럼 다른 유형은 입력 연결도 추가해야 합니다. 해당 탐색 기능과 웹 서버 기반 대시보드, AI 기능, DB 서버는 구현하지 않았습니다.
+`internal/cli`, `config`, `runner`, `tools`, `updater`, `engine`, `scope`, `model`, `parser`, `storage`, `reporting`으로 책임을 분리했습니다. 도구는 `Name/Version/Validate/BuildArgs/Run/Parse/RequiredInputs/Outputs` 인터페이스를 구현합니다. `Registry()`에 어댑터를 등록하고 `engine.Plan()`에 단계 설명을 추가해 확장할 수 있습니다. 현재 입력 연결은 호스트/웹 서비스/포트/템플릿 유형을 중심으로 구현되어 있으며, 다른 종류의 신규 데이터는 입력 연결도 추가해야 합니다. GHRecon의 별도 GitHub 수집은 이 구조에 병행 작업으로 연결했습니다. Cloud Discovery 모듈과 웹 서버 기반 대시보드, AI 기능, DB 서버는 구현하지 않았습니다.
 
 ## 검증과 현재 제약
 

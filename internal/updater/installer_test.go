@@ -63,6 +63,27 @@ func TestVersionCompareAndAssets(t *testing.T) {
 		t.Fatal("unsupported arch accepted")
 	}
 }
+
+func TestGHReconReleaseAssetFormats(t *testing.T) {
+	release := Release{Tag: "v0.1.1", Assets: []Asset{{Name: "checksums.txt"}, {Name: "ghrecon-windows-amd64.exe"}, {Name: "ghrecon-linux-amd64"}, {Name: "ghrecon-linux-arm64"}, {Name: "ghrecon-darwin-amd64"}}}
+	for _, platform := range []string{"windows", "linux", "darwin"} {
+		asset, err := SelectAsset(release, "ghrecon", platform, "amd64")
+		if err != nil {
+			t.Fatal(err)
+		}
+		exe := "ghrecon"
+		if platform == "windows" {
+			exe += ".exe"
+		}
+		b, err := Extract(asset.Name, exe, []byte("fixture executable"))
+		if err != nil || string(b) != "fixture executable" {
+			t.Fatal(err)
+		}
+	}
+	if _, err := SelectAsset(release, "ghrecon", "windows", "arm64"); err == nil {
+		t.Fatal("unsupported Windows architecture accepted")
+	}
+}
 func TestExtractTraversal(t *testing.T) {
 	for _, name := range []string{"../naabu.exe", "C:/naabu.exe", `..\naabu.exe`} {
 		if _, e := Extract("a.zip", "naabu.exe", zipBytes(t, name, []byte("x"))); e == nil {

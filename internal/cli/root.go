@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-var Version = "0.3.1"
+var Version = "0.4.0"
 
 func Normalize(args []string) []string {
 	out := append([]string{}, args...)
@@ -37,7 +37,7 @@ func Normalize(args []string) []string {
 	return out
 }
 func New(args []string, out, errOut io.Writer) (*cobra.Command, error) {
-	invocation := append([]string{os.Args[0]}, args...)
+	invocation := config.RedactGitHubArgs(append([]string{os.Args[0]}, args...))
 	args = Normalize(args)
 	path := ""
 	for i, s := range args {
@@ -86,7 +86,7 @@ func New(args []string, out, errOut io.Writer) (*cobra.Command, error) {
 	root.SetArgs(args)
 	f := root.PersistentFlags()
 	bind(f, &c, &path)
-	root.AddCommand(toolsCommand(&c, out), templatesCommand(&c, out), doctorCommand(&c, out), resumeCommand(out))
+	root.AddCommand(toolsCommand(&c, out), templatesCommand(&c, out), doctorCommand(&c, out), resumeCommand(&c, out))
 	root.AddCommand(reportCommand(out))
 	return root, nil
 }
@@ -98,6 +98,13 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	return root.ExecuteContext(ctx)
 }
 func bind(f *pflag.FlagSet, c *config.Config, path *string) {
+	f.StringVar(&c.GitHubToken, "github-token", "", "GitHub token for GHRecon (runtime only; prefer token file or environment)")
+	f.StringVar(&c.GitHubTokenFile, "github-token-file", "", "File containing the GitHub token")
+	f.StringVar(&c.GHRecon, "ghrecon", c.GHRecon, "auto/on/off; auto enables GitHub discovery when a token is available")
+	f.StringVar(&c.GHReconProfile, "ghrecon-profile", c.GHReconProfile, "quick/standard/deep")
+	f.IntVar(&c.GHReconMaxQueries, "ghrecon-max-queries", c.GHReconMaxQueries, "Maximum GHRecon search queries")
+	f.IntVar(&c.GHReconMaxResults, "ghrecon-max-results", c.GHReconMaxResults, "Maximum results per GHRecon query")
+	f.IntVar(&c.GHReconConcurrency, "ghrecon-concurrency", c.GHReconConcurrency, "Concurrent GitHub search queries")
 	f.StringVar(path, "config", *path, "YAML configuration path (CLI > DISCOVERYX_* > YAML > defaults)")
 	f.StringVarP(&c.Target, "url", "u", c.Target, "Target domain or HTTP URL")
 	f.StringVarP(&c.Output, "output", "o", c.Output, "Output directory")
@@ -132,6 +139,9 @@ func bind(f *pflag.FlagSet, c *config.Config, path *string) {
 	f.IntVar(&c.MaxTargets, "max-targets", c.MaxTargets, "Maximum input targets per stage")
 	for _, name := range updater.Names {
 		n := name
+		if n == "ghrecon" {
+			continue
+		}
 		l := c.Limits[n]
 		f.IntVar(&l.Rate, n+"-rate", l.Rate, "Requests/packets per second for "+n+limitDefaultHint(n))
 		f.IntVar(&l.Concurrency, n+"-concurrency", l.Concurrency, "Workers for "+n+limitDefaultHint(n))
@@ -313,13 +323,18 @@ func doctorCommand(c *config.Config, out io.Writer) *cobra.Command {
 		return nil
 	}}
 }
-func resumeCommand(out io.Writer) *cobra.Command {
+func resumeCommand(runtimeConfig *config.Config, out io.Writer) *cobra.Command {
 	var run string
 	c := &cobra.Command{Use: "resume", Short: "Resume a run directory using saved scope, settings, binary hashes and checkpoints", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		e, err := engine.Resume(run, out)
 		if err != nil {
 			return err
 		}
+		token, tokenErr := runtimeConfig.ResolveGitHubToken()
+		if tokenErr != nil {
+			return tokenErr
+		}
+		e.GitHubToken = token
 		err = e.Run(cmd.Context(), true)
 		e.PrintSummary()
 		if err == nil && e.Meta.State == "Partial" {

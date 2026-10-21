@@ -2,7 +2,6 @@ package engine
 
 import (
 	"github.com/naroSEC/DiscoveryX/internal/model"
-	"github.com/naroSEC/DiscoveryX/internal/storage"
 	"path/filepath"
 )
 
@@ -25,9 +24,6 @@ func (e *Engine) recordCommand(command model.Command) error {
 	}
 	if !found {
 		e.State.Commands = append(e.State.Commands, command)
-	}
-	if err := storage.JSON(filepath.Join(e.Dir, "logs", "commands.json"), e.State.Commands); err != nil {
-		return err
 	}
 	return e.save()
 }

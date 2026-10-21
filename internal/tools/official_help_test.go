@@ -6,6 +6,7 @@ import (
 	"github.com/naroSEC/DiscoveryX/internal/scope"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -13,6 +14,7 @@ func TestArgumentsAgainstVerifiedWindowsHelp(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, "inputs"), 0700)
 	c := config.Default()
+	c.Target = "fixture.test"
 	c.Wordlist = filepath.Join(dir, "fixture-wordlist")
 	os.WriteFile(c.Wordlist, []byte("fixture\n"), 0600)
 	c.TechRules = filepath.Join("..", "..", "configs", "tech-extensions.yaml")
@@ -31,7 +33,11 @@ func TestArgumentsAgainstVerifiedWindowsHelp(t *testing.T) {
 			}
 			for _, call := range calls {
 				for _, arg := range call.Args {
-					if len(arg) > 0 && arg[0] == '-' && !Supports(in.Help, arg) {
+					flag := arg
+					if name == "ghrecon" {
+						flag = "-" + strings.TrimLeft(arg, "-")
+					}
+					if len(arg) > 0 && arg[0] == '-' && !Supports(in.Help, flag) {
 						t.Errorf("%s unsupported by verified release: %s", name, arg)
 					}
 				}

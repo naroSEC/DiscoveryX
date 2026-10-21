@@ -1,0 +1,49 @@
+Usage of ghrecon:
+  -company value
+    	target company name (repeatable)
+  -concurrency int
+    	maximum concurrent queries
+  -config string
+    	YAML configuration file
+  -domain value
+    	target root domain (repeatable)
+  -include-archived
+    	include archived repositories
+  -include-forks
+    	include forked repositories
+  -input string
+    	target file
+  -json
+    	write a JSON report
+  -jsonl
+    	write one finding per JSON line
+  -keyword value
+    	target keyword (repeatable)
+  -max-depth int
+    	maximum deep expansion depth (default -1)
+  -max-queries int
+    	maximum queries
+  -max-results int
+    	maximum API results per query
+  -org value
+    	known GitHub organization (repeatable)
+  -output string
+    	write output to file
+  -profile string
+    	quick, standard, or deep
+  -quiet
+    	suppress progress logs
+  -repo value
+    	known owner/repository (repeatable)
+  -repos-only
+    	emit repository candidates only
+  -timeout duration
+    	HTTP request timeout
+  -token string
+    	GitHub token (may be visible in process lists and shell history)
+  -token-file string
+    	file containing a GitHub token
+  -verbose
+    	write progress to stderr
+  -version
+    	print version

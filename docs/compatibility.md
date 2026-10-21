@@ -24,3 +24,11 @@
 ## 속도·동시성 기본값
 
 공식 Windows 실행 파일의 도움말을 다시 확인했습니다. Feroxbuster 2.13.1은 `-t` 50, `--rate-limit` 0, `--scan-limit` 0을 기본으로 사용합니다. Nuclei 3.11.1은 `-rl` 150, `-c` 25, `-bs` 25입니다. DiscoveryX는 기본 실행에서 이 인자들을 생략하며 설치된 버전의 기본값을 따릅니다. Feroxbuster/Nuclei의 rate/concurrency 및 Feroxbuster scan limit은 양수로 지정한 경우에만 전달합니다.
+
+## GHRecon v0.1.1
+
+2026-10-21에 [공식 릴리스](https://github.com/naroSEC/GHRecon/releases/tag/v0.1.1)의 Windows/amd64 실행 파일을 다운로드하고 SHA256·실제 `--help`·`--version`을 확인했습니다. 도움말 원본은 `ghrecon-help.txt`입니다. Windows 자산은 `ghrecon-windows-amd64.exe`이며 Linux/macOS 자산은 확장자 없는 실행 파일이므로 설치 관리자가 이 형식도 처리합니다.
+
+[공식 스키마](https://github.com/naroSEC/GHRecon/blob/main/docs/output-schema.md)에 따라 JSONL 스키마 v1과 출처를 보관하고 종료 코드 2의 부분 결과를 유지합니다. 도움말은 Go flag 형식의 `-domain`, `-jsonl` 등을 표시하지만 실제 실행은 공식 README에서 안내한 `--domain`, `--jsonl` 형식을 지원합니다. 해당 도구에 없는 ProjectDiscovery 전용 `-duc`를 전달하지 않습니다.
+
+Public Suffix List는 Go 1.25와 호환되는 `golang.org/x/net/publicsuffix` v0.58.0을 사용합니다. 더 최신 v0.59.0 이상은 Go 1.26을 요구하므로 현재 프로젝트의 최소 Go 버전과 구분했습니다.
