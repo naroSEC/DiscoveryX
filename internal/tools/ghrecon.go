@@ -19,11 +19,11 @@ func RootDomain(target string) (string, error) {
 		return "", err
 	}
 	if net.ParseIP(host) != nil || !strings.Contains(host, ".") {
-		return "", fmt.Errorf("GHRecon needs a domain name; IP and single-label targets are unsupported")
+		return "", fmt.Errorf("root domain requires a domain name; IP and single-label targets are unsupported")
 	}
 	domain, err := publicsuffix.EffectiveTLDPlusOne(host)
 	if err != nil {
-		return "", fmt.Errorf("derive GHRecon root domain: %w", err)
+		return "", fmt.Errorf("derive root domain: %w", err)
 	}
 	return domain, nil
 }

@@ -67,12 +67,29 @@ func (e *Engine) Initialize() error {
 	if err := e.Config.Absolute(); err != nil {
 		return err
 	}
+	originalTarget := e.Config.Target
+	if !e.Config.WebOnly {
+		host, err := scope.Host(originalTarget)
+		if err != nil {
+			return err
+		}
+		if net.ParseIP(host) == nil && strings.Contains(host, ".") {
+			host, err = tools.RootDomain(originalTarget)
+			if err != nil {
+				return err
+			}
+		}
+		e.Config.Target = host
+	}
 	v, err := scope.New(e.Config.Target, e.Config.Excluded)
 	if err != nil {
 		return err
 	}
+	if !v.Contains(originalTarget) {
+		return fmt.Errorf("input target is excluded")
+	}
 	host, _ := scope.Host(e.Config.Target)
-	e.Dir = filepath.Join(e.Config.Output, host+"_"+time.Now().Format("20060102_150405.000000000"))
+	e.Dir = filepath.Join(e.Config.Output, strings.ReplaceAll(host, ":", "_")+"_"+time.Now().Format("20060102_150405.000000000"))
 	if err = os.MkdirAll(e.Dir, 0700); err != nil {
 		return err
 	}
@@ -82,16 +99,26 @@ func (e *Engine) Initialize() error {
 		}
 	}
 	e.Meta = Metadata{Schema: 1, Started: time.Now().UTC(), Config: e.Config, Scope: v, Tools: map[string]updater.Installation{}, State: "Pending"}
+	e.Meta.OriginalTarget = originalTarget
 	e.Meta.Platform = runtime.GOOS
 	for _, s := range Plan(e.Config) {
 		e.State.Stages = append(e.State.Stages, model.StageState{Name: s.Name, Status: "Pending"})
 	}
-	e.State.Data.Assets = []model.Asset{{Hostname: host, DiscoveredBy: "input"}}
+	e.State.Data.Assets = e.inputAssets()
 	if err = storage.JSON(filepath.Join(e.Dir, "inputs", "scope.json"), v); err != nil {
 		return err
 	}
 	return e.save()
 }
+func (e *Engine) inputAssets() []model.Asset {
+	host, _ := scope.Host(e.Config.Target)
+	assets := []model.Asset{{Hostname: host, DiscoveredBy: "input"}}
+	if original, err := scope.Host(e.Meta.OriginalTarget); err == nil && original != host && e.Meta.Scope.Contains(original) {
+		assets = append(assets, model.Asset{Hostname: original, DiscoveredBy: "input"})
+	}
+	return assets
+}
+
 func Resume(dir string, out io.Writer) (*Engine, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
@@ -264,8 +291,7 @@ func (e *Engine) Run(ctx context.Context, resume bool) (err error) {
 			e.collectGitHub()
 		}
 	}()
-	host, _ := scope.Host(e.Config.Target)
-	e.State.Data = model.Data{Assets: []model.Asset{{Hostname: host, DiscoveredBy: "input"}}}
+	e.State.Data = model.Data{Assets: e.inputAssets()}
 	e.State.ScannedIPs = nil
 	if e.Config.WebOnly {
 		u, err := WebTarget(ctx, e.Config.Target, e.Config.HTTPTimeout, e.Meta.Scope)

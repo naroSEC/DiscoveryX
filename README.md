@@ -124,13 +124,15 @@ discoveryx -u example.com -ps off -sbf off
 
 `-sbf`, `-cwl`, `--dir`, `--nuc`는 `on/off`로 설정합니다. `-ps`는 `first`, `last`, `both`, `off`를 지원합니다. 긴 옵션인 `--subfinder`, `--crawl`, `--port-scan`도 사용할 수 있습니다.
 
+일반 모드에서는 URL이나 서브도메인을 입력해도 루트 도메인을 기준으로 수집합니다. `https://www.example.com/app`을 입력하면 Subfinder에는 `-d example.com`을 전달하고, 초기 Naabu는 `example.com`의 DNS 조회 결과로 얻은 IP 목록을 `-list`로 전달받습니다. `api.example.co.kr`은 `example.co.kr`로 구분하며, IP 주소와 단일 호스트 이름은 그대로 사용합니다. 입력한 호스트도 DNS·웹 서비스 탐색 대상에 포함하고, 원래 입력값은 `metadata.json`의 `original_target`에 보관합니다. `--web-only`에서는 루트 도메인으로 변경하지 않고 입력 URL을 유지합니다.
+
 ### 포트 스캔을 마지막에 실행
 
 ```powershell
 discoveryx -u example.com -ps last
 ```
 
-`-ps both`를 사용하면 최초에는 원본 도메인, 마지막에는 새로 발견한 호스트의 IP를 확인합니다. 동일 조건으로 완료한 IP는 중복 스캔하지 않습니다. 대상 호스트의 DNS 결과를 사용합니다.
+`-ps both`를 사용하면 최초에는 루트 도메인, 마지막에는 새로 발견한 호스트의 IP를 확인합니다. 동일 조건으로 완료한 IP는 중복 스캔하지 않습니다. 대상 호스트의 DNS 결과를 사용합니다.
 
 ### 이미 알고 있는 웹 서비스만 점검
 

@@ -9,6 +9,7 @@ import (
 )
 
 type Metadata struct {
+	OriginalTarget  string                          `json:"original_target,omitempty"`
 	Command         []string                        `json:"command,omitempty"`
 	Platform        string                          `json:"platform,omitempty"`
 	Resources       map[string]string               `json:"resource_sha256,omitempty"`
